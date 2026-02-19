@@ -96,7 +96,7 @@ using the macro:
 ```elixir
 import Phoenix.LiveDashboard.Router
 
-forward "/timeless/downloads", TimelessDashboard.DownloadPlug,
+forward "/timeless/downloads", TimelessMetricsDashboard.DownloadPlug,
   store: :tp_default_timeless
 
 live_dashboard "/dashboard",

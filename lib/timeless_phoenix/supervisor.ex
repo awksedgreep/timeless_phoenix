@@ -63,7 +63,7 @@ defmodule TimelessPhoenix.Supervisor do
       %{id: :timeless_traces_app, start: {__MODULE__, :ensure_app, [:timeless_traces]}},
 
       # Start the telemetry reporter
-      {TimelessDashboard.Reporter, reporter_opts}
+      {TimelessMetricsDashboard.Reporter, reporter_opts}
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)

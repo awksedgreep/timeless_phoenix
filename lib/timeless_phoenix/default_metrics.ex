@@ -3,7 +3,7 @@ defmodule TimelessPhoenix.DefaultMetrics do
   Aggregated `Telemetry.Metrics` from all observability engines.
 
   Used as the default metrics module for both the Reporter and LiveDashboard.
-  Re-exports from `TimelessDashboard.DefaultMetrics` and adds log/span metrics.
+  Re-exports from `TimelessMetricsDashboard.DefaultMetrics` and adds log/span metrics.
 
   ## Usage
 
@@ -18,12 +18,12 @@ defmodule TimelessPhoenix.DefaultMetrics do
 
   import Telemetry.Metrics
 
-  # Re-export TimelessDashboard.DefaultMetrics
-  defdelegate vm_metrics, to: TimelessDashboard.DefaultMetrics
-  defdelegate phoenix_metrics, to: TimelessDashboard.DefaultMetrics
-  defdelegate ecto_metrics(repo_prefix), to: TimelessDashboard.DefaultMetrics
-  defdelegate live_view_metrics, to: TimelessDashboard.DefaultMetrics
-  defdelegate timeless_metrics, to: TimelessDashboard.DefaultMetrics
+  # Re-export TimelessMetricsDashboard.DefaultMetrics
+  defdelegate vm_metrics, to: TimelessMetricsDashboard.DefaultMetrics
+  defdelegate phoenix_metrics, to: TimelessMetricsDashboard.DefaultMetrics
+  defdelegate ecto_metrics(repo_prefix), to: TimelessMetricsDashboard.DefaultMetrics
+  defdelegate live_view_metrics, to: TimelessMetricsDashboard.DefaultMetrics
+  defdelegate timeless_metrics, to: TimelessMetricsDashboard.DefaultMetrics
 
   @doc """
   TimelessLogs metrics: buffer flushes, retention cleanup.

@@ -29,7 +29,7 @@ defmodule TimelessPhoenix.Router do
   """
 
   @doc """
-  Mounts the TimelessDashboard download plug and LiveDashboard with all pages.
+  Mounts the TimelessMetricsDashboard download plug and LiveDashboard with all pages.
   """
   defmacro timeless_phoenix_dashboard(path, opts \\ []) do
     quote bind_quoted: [path: path, opts: opts] do
@@ -41,7 +41,7 @@ defmodule TimelessPhoenix.Router do
       store = TimelessPhoenix.store_name(name)
       extra = Keyword.get(opts, :live_dashboard, [])
 
-      forward download_path, TimelessDashboard.DownloadPlug, store: store
+      forward download_path, TimelessMetricsDashboard.DownloadPlug, store: store
 
       dashboard_opts =
         [

@@ -27,14 +27,14 @@ defmodule TimelessPhoenixTest do
 
     assert Keyword.has_key?(pages, :timeless)
     assert Keyword.has_key?(pages, :logs)
-    assert Keyword.has_key?(pages, :spans)
+    assert Keyword.has_key?(pages, :traces)
 
-    assert {TimelessDashboard.Page, page_opts} = pages[:timeless]
+    assert {TimelessMetricsDashboard.Page, page_opts} = pages[:timeless]
     assert page_opts[:store] == :tp_default_timeless
     assert page_opts[:download_path] == "/timeless/downloads"
 
-    assert pages[:logs] == LogStreamDashboard.Page
-    assert pages[:spans] == SpanStreamDashboard.Page
+    assert pages[:logs] == TimelessLogsDashboard.Page
+    assert pages[:traces] == TimelessTracesDashboard.Page
   end
 
   test "DefaultMetrics.all returns a non-empty list of metrics" do

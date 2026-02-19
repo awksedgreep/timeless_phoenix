@@ -28,7 +28,7 @@ defmodule TimelessPhoenix.MixProject do
       {:timeless_traces, path: "../timeless_traces", override: true},
 
       # Dashboard pages
-      {:timeless_dashboard, path: "../timeless_dashboard"},
+      {:timeless_metrics_dashboard, path: "../timeless_metrics_dashboard"},
       {:timeless_logs_dashboard, path: "../timeless_logs_dashboard"},
       {:timeless_traces_dashboard, path: "../timeless_traces_dashboard"},
 

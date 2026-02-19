@@ -40,7 +40,7 @@ defmodule TimelessPhoenix do
   @doc """
   Callback for LiveDashboard's `metrics_history` option.
 
-  Delegates to `TimelessDashboard.metrics_history/3` using the Timeless store
+  Delegates to `TimelessMetricsDashboard.metrics_history/3` using the Timeless store
   name for this instance.
 
   ## Router Configuration
@@ -55,7 +55,7 @@ defmodule TimelessPhoenix do
   """
   def metrics_history(metric, name \\ :default, opts \\ []) do
     store = store_name(name)
-    TimelessDashboard.metrics_history(metric, store, opts)
+    TimelessMetricsDashboard.metrics_history(metric, store, opts)
   end
 
   @doc """
@@ -72,9 +72,9 @@ defmodule TimelessPhoenix do
     store = store_name(name)
 
     [
-      timeless: {TimelessDashboard.Page, store: store, download_path: download_path},
+      timeless: {TimelessMetricsDashboard.Page, store: store, download_path: download_path},
       logs: TimelessLogsDashboard.Page,
-      spans: TimelessTracesDashboard.Page
+      traces: TimelessTracesDashboard.Page
     ]
   end
 
