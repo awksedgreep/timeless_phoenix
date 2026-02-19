@@ -37,6 +37,7 @@ if Code.ensure_loaded?(Igniter) do
 
     use GenServer
     require Logger
+    require OpenTelemetry.Tracer, as: Tracer
 
     @interval 2_000
 
@@ -82,57 +83,69 @@ if Code.ensure_loaded?(Igniter) do
       status = Enum.random([200, 200, 200, 200, 201, 301, 404])
       duration = Enum.random(5..150)
 
-      :telemetry.execute(
-        [:__OTP_APP__, :request, :stop],
-        %{duration: duration * 1_000_000},
-        %{method: method, path: path, status: status}
-      )
+      Tracer.with_span "#{method} #{path}", attributes: %{"http.method" => method, "http.target" => path, "http.status_code" => status} do
+        :telemetry.execute(
+          [:__OTP_APP__, :request, :stop],
+          %{duration: duration * 1_000_000},
+          %{method: method, path: path, status: status}
+        )
 
-      Logger.info("#{method} #{path} — #{status} in #{duration}ms",
-        method: method,
-        path: path,
-        status: status,
-        request_id: random_id()
-      )
+        Logger.info("#{method} #{path} — #{status} in #{duration}ms",
+          method: method,
+          path: path,
+          status: status,
+          request_id: random_id()
+        )
 
-      Process.sleep(duration)
+        Process.sleep(duration)
+
+        if status >= 400 do
+          Tracer.set_status(:error, "HTTP #{status}")
+        end
+      end
     end
 
     defp simulate_db_query do
       table = Enum.random(["users", "orders", "products", "sessions", "events"])
       duration = Enum.random(1..50)
 
-      :telemetry.execute(
-        [:__OTP_APP__, :repo, :query],
-        %{total_time: duration * 1_000_000, queue_time: Enum.random(0..5) * 1_000_000},
-        %{source: table}
-      )
+      Tracer.with_span "DB #{table}", attributes: %{"db.system" => "postgresql", "db.sql.table" => table} do
+        :telemetry.execute(
+          [:__OTP_APP__, :repo, :query],
+          %{total_time: duration * 1_000_000, queue_time: Enum.random(0..5) * 1_000_000},
+          %{source: table}
+        )
 
-      Logger.debug("SQL query on #{table} completed in #{duration}ms",
-        table: table,
-        duration_ms: duration
-      )
+        Logger.debug("SQL query on #{table} completed in #{duration}ms",
+          table: table,
+          duration_ms: duration
+        )
 
-      Process.sleep(duration)
+        Process.sleep(duration)
+      end
     end
 
     defp simulate_background_job do
       job = Enum.random(["send_email", "process_payment", "generate_report", "sync_inventory"])
       duration = Enum.random(50..500)
 
-      Logger.info("Starting background job: #{job}", job: job)
-      Process.sleep(duration)
-      Logger.info("Completed background job: #{job} in #{duration}ms", job: job, duration_ms: duration)
+      Tracer.with_span "job.#{job}", attributes: %{"job.type" => job} do
+        Logger.info("Starting background job: #{job}", job: job)
+        Process.sleep(duration)
+        Logger.info("Completed background job: #{job} in #{duration}ms", job: job, duration_ms: duration)
+      end
     end
 
     defp simulate_cache_operation do
       op = Enum.random(["hit", "hit", "hit", "miss"])
       key = Enum.random(["user:123", "product:456", "session:abc", "config:main"])
 
-      if op == "miss" do
-        Logger.debug("Cache miss for #{key}, fetching from source", cache: op, key: key)
-      else
-        Logger.debug("Cache #{op} for #{key}", cache: op, key: key)
+      Tracer.with_span "cache.#{op}", attributes: %{"cache.key" => key, "cache.hit" => op == "hit"} do
+        if op == "miss" do
+          Logger.debug("Cache miss for #{key}, fetching from source", cache: op, key: key)
+        else
+          Logger.debug("Cache #{op} for #{key}", cache: op, key: key)
+        end
       end
     end
 

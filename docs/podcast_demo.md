@@ -80,12 +80,17 @@ Open `http://localhost:4000/dashboard` — LiveDashboard now has three observabi
    - Demo: search by level (`:error`, `:warning`), substring match ("timeout", "deadlock"), time range
    - **Talking point:** "Every Logger call in your app is automatically captured. No extra config. Search by level, message, metadata — all indexed in SQLite."
 
-3. **Timeless tab** (metrics dashboard) — Persistent charts, compression stats, backup controls.
+3. **Traces tab** — Demo traffic is generating OpenTelemetry spans for every simulated activity (HTTP requests, DB queries, background jobs, cache operations). Spans appear with service name, duration, status.
+   - Click a trace ID to see span details
+   - Filter by `status=error`, `min_duration`, etc.
+   - **Talking point:** "Spans go straight from the OTel SDK to compressed storage. No collector, no Jaeger, no external infra."
+
+4. **TimelessMetrics tab** — Persistent charts, compression stats, backup controls.
    - **Talking point:** "This is your metrics TSDB dashboard. Compression ratios, point counts, segment info — all at a glance."
 
-### Act 5: Traces (optional, ~2 min)
+### Act 5: Real Phoenix Traces (optional, ~2 min)
 
-For OTel span instrumentation, add the Phoenix/Bandit libraries:
+To also capture spans from real Phoenix HTTP requests (not just demo traffic), add OTel instrumentation:
 
 ```elixir
 # mix.exs — add these deps
@@ -99,12 +104,9 @@ OpentelemetryPhoenix.setup()
 OpentelemetryBandit.setup()
 ```
 
-Restart, hit a few pages, then:
+Restart, hit a few pages, then show the new spans in the Traces tab alongside the demo traffic spans.
 
-- **Traces tab:** Spans appearing with service name, duration, status
-- Click a trace ID to see the full span tree
-- Filter by `status=error`, `min_duration`, etc.
-- **Talking point:** "Spans go straight from the OTel SDK to compressed storage. No collector, no Jaeger, no external infra."
+- **Talking point:** "One line of setup and every real HTTP request gets traced end-to-end."
 
 ### Act 6: The Punchline (~1 min)
 
