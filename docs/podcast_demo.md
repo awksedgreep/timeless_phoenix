@@ -42,42 +42,51 @@ What Igniter does automatically (show the diff or narrate):
 
 - Adds `{:timeless_phoenix, "~> 0.x"}` to `mix.exs` deps
 - Adds `{TimelessPhoenix, data_dir: "priv/observability"}` to your supervision tree in `application.ex`
+- Configures OpenTelemetry to export spans to TimelessTraces in `config.exs`
 - Adds `import TimelessPhoenix.Router` to your router
 - Adds `timeless_phoenix_dashboard "/dashboard"` inside your browser scope
 - Updates `.formatter.exs` with `import_deps: [:timeless_phoenix]`
+- Prints a notice to remove the default `/dev/dashboard` route (avoids live_session conflict)
+
+**Important:** Remove the default LiveDashboard route from the router (the `if Application.compile_env(:your_app, :dev_routes)` block) to avoid a live_session conflict.
 
 **Talking point:** "One command. No config files. No YAML. No docker-compose."
 
-### Act 3: Start and Explore (~3 min)
+### Act 3: Generate Demo Traffic (~1 min)
+
+```bash
+mix timeless_phoenix.gen_demo
+```
+
+What Igniter generates:
+
+- `lib/<app>/demo_traffic.ex` — a GenServer that spawns 3-6 simulated activities every 2 seconds (HTTP requests, DB queries, background jobs, cache operations, plus periodic warnings and errors)
+- Adds `{Task.Supervisor, name: <App>.DemoTaskSupervisor}` and `<App>.DemoTraffic` to the supervision tree
+
+**Talking point:** "This gives us realistic background activity so the dashboards have something interesting to show. All log levels, telemetry events, simulated request patterns."
+
+### Act 4: Start and Explore (~3 min)
 
 ```bash
 mix phx.server
 ```
 
-Open `http://localhost:4000/dashboard` — LiveDashboard now has three observability pages:
+Open `http://localhost:4000/dashboard` — LiveDashboard now has three observability pages, and the demo traffic generator is already populating them:
 
 1. **Metrics tab** — VM metrics (memory, run queues, process counts) already being captured and *persisted*. Refresh the page — history is still there.
    - **Talking point:** "These metrics survive page refreshes, restarts, even deploys. They're stored in a Gorilla+zstd compressed time series database at 0.67 bytes per point — an 11.5x compression ratio."
 
-2. **Logs tab** — Click around in the app to generate log output, then show the logs page.
+2. **Logs tab** — Demo traffic is generating logs at all four levels. Show the search.
    - All `Logger` calls are automatically captured, compressed, and indexed
-   - Demo: search by level (`:error`, `:warning`), substring match, time range
+   - Demo: search by level (`:error`, `:warning`), substring match ("timeout", "deadlock"), time range
    - **Talking point:** "Every Logger call in your app is automatically captured. No extra config. Search by level, message, metadata — all indexed in SQLite."
 
 3. **Timeless tab** (metrics dashboard) — Persistent charts, compression stats, backup controls.
    - **Talking point:** "This is your metrics TSDB dashboard. Compression ratios, point counts, segment info — all at a glance."
 
-### Act 4: Generate Some Traffic (~2 min)
+### Act 5: Traces (optional, ~2 min)
 
-Add a simple controller or LiveView, or just click around the app. Then show:
-
-- **Logs tab:** Phoenix request logs appearing in real-time
-- **Metrics tab:** `phoenix.endpoint.stop.duration` and `phoenix.router_dispatch.stop.duration` charts populating
-- 43 metrics captured automatically (VM, Phoenix, LiveView, plus internal health metrics for all three engines)
-
-### Act 5: Traces (~2 min)
-
-Add the OpenTelemetry instrumentation libraries:
+For OTel span instrumentation, add the Phoenix/Cowboy libraries:
 
 ```elixir
 # mix.exs — add these deps
@@ -127,6 +136,7 @@ du -sh priv/observability/
 
 - [ ] All packages published to Hex (or clean GitHub dep story ready)
 - [ ] `mix igniter.install timeless_phoenix` works against a clean `phx.new` project
-- [ ] Traces tab populates with OTel Phoenix/Cowboy instrumentation
-- [ ] Dashboard URL doesn't conflict with the default `/dev/dashboard`
+- [ ] Remove default LiveDashboard route after install (live_session conflict)
+- [ ] `mix timeless_phoenix.gen_demo` generates DemoTraffic + Task.Supervisor correctly
+- [ ] Traces tab populates with OTel Phoenix/Cowboy instrumentation (if using Act 5)
 - [ ] Data directory creates cleanly under `priv/observability/`
