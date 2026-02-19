@@ -20,11 +20,13 @@ if Code.ensure_loaded?(Igniter) do
     ## What it does
 
     1. Adds `{TimelessPhoenix, data_dir: "priv/observability"}` to your application's
-       supervision tree (with `log_stream: [storage: :memory], span_stream: [storage: :memory]`
+       supervision tree (with `timeless_logs: [storage: :memory], timeless_traces: [storage: :memory]`
        when `--storage memory` is used)
-    2. Adds `import TimelessPhoenix.Router` to your Phoenix router
-    3. Adds `timeless_phoenix_dashboard "/dashboard"` to your router's browser scope
-    4. Adds `:timeless_phoenix` to your `.formatter.exs` import_deps
+    2. Configures OpenTelemetry to export spans to TimelessTraces
+    3. Adds `import TimelessPhoenix.Router` to your Phoenix router
+    4. Adds `timeless_phoenix_dashboard "/dashboard"` to your router's browser scope
+    5. Adds `:timeless_phoenix` to your `.formatter.exs` import_deps
+    6. Reminds you to remove the default LiveDashboard route (avoids live_session conflict)
     """
 
     use Igniter.Mix.Task
@@ -51,7 +53,9 @@ if Code.ensure_loaded?(Igniter) do
 
       igniter
       |> add_to_supervision_tree(storage)
+      |> configure_opentelemetry()
       |> setup_router()
+      |> remove_default_live_dashboard()
       |> Igniter.Project.Formatter.import_dep(:timeless_phoenix)
     end
 
@@ -61,13 +65,13 @@ if Code.ensure_loaded?(Igniter) do
         case storage do
           "memory" ->
             Sourceror.parse_string!("""
-            data_dir: "priv/observability",
-            timeless_logs: [storage: :memory],
-            timeless_traces: [storage: :memory]
+            [data_dir: "priv/observability",
+             timeless_logs: [storage: :memory],
+             timeless_traces: [storage: :memory]]
             """)
 
           _ ->
-            Sourceror.parse_string!(~s(data_dir: "priv/observability"))
+            Sourceror.parse_string!(~s([data_dir: "priv/observability"]))
         end
 
       Igniter.Project.Application.add_new_child(
@@ -103,6 +107,29 @@ if Code.ensure_loaded?(Igniter) do
             router: router
           )
       end
+    end
+
+    # Configures OpenTelemetry to export spans to TimelessTraces.
+    # This must be in compile-time config so it takes effect before the OTel app starts.
+    defp configure_opentelemetry(igniter) do
+      Igniter.Project.Config.configure(
+        igniter,
+        "config.exs",
+        :opentelemetry,
+        [:traces_exporter],
+        {:code, Sourceror.parse_string!("{TimelessTraces.Exporter, []}")}
+      )
+    end
+
+    # Removes the default Phoenix LiveDashboard route to avoid live_session conflicts.
+    defp remove_default_live_dashboard(igniter) do
+      Igniter.add_notice(igniter, """
+      TimelessPhoenix installs its own LiveDashboard at /dashboard.
+
+      If your router has a default LiveDashboard route (typically in a
+      `if Application.compile_env(:your_app, :dev_routes)` block), you should
+      remove it to avoid a live_session conflict.
+      """)
     end
 
     # Adds `import TimelessPhoenix.Router` after `use Phoenix.Router` in the router module.
