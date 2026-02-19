@@ -20,9 +20,8 @@ Step-by-step demo script showing a fresh Phoenix project going from zero to full
 ### Act 1: Fresh Phoenix Project (~2 min)
 
 ```bash
-mix phx.new demo_app --no-ecto
+mix phx.new demo_app --no-ecto --no-mailer --install
 cd demo_app
-mix deps.get
 mix phx.server
 ```
 
@@ -86,18 +85,18 @@ Open `http://localhost:4000/dashboard` — LiveDashboard now has three observabi
 
 ### Act 5: Traces (optional, ~2 min)
 
-For OTel span instrumentation, add the Phoenix/Cowboy libraries:
+For OTel span instrumentation, add the Phoenix/Bandit libraries:
 
 ```elixir
 # mix.exs — add these deps
 {:opentelemetry_phoenix, "~> 2.0"},
-{:opentelemetry_cowboy, "~> 1.0"}
+{:opentelemetry_bandit, "~> 0.2"}
 ```
 
 ```elixir
 # application.ex — in start/2, before supervisor
 OpentelemetryPhoenix.setup()
-OpentelemetryCowboy.setup()
+OpentelemetryBandit.setup()
 ```
 
 Restart, hit a few pages, then:
@@ -135,8 +134,8 @@ du -sh priv/observability/
 ## Pre-flight Checklist
 
 - [ ] All packages published to Hex (or clean GitHub dep story ready)
-- [ ] `mix igniter.install timeless_phoenix` works against a clean `phx.new` project
-- [ ] Remove default LiveDashboard route after install (live_session conflict)
-- [ ] `mix timeless_phoenix.gen_demo` generates DemoTraffic + Task.Supervisor correctly
-- [ ] Traces tab populates with OTel Phoenix/Cowboy instrumentation (if using Act 5)
-- [ ] Data directory creates cleanly under `priv/observability/`
+- [x] `mix timeless_phoenix.install` works against a clean `phx.new` project
+- [x] Remove default LiveDashboard route after install (live_session conflict)
+- [x] `mix timeless_phoenix.gen_demo` generates DemoTraffic + Task.Supervisor correctly
+- [ ] Traces tab populates with OTel Phoenix/Bandit instrumentation (if using Act 5)
+- [x] Data directory creates cleanly under `priv/observability/`
