@@ -39,6 +39,10 @@ defmodule TimelessPhoenix.Supervisor do
     # Configure OpenTelemetry to export to TimelessTraces
     Application.put_env(:opentelemetry, :traces_exporter, {TimelessTraces.Exporter, []})
 
+    # Attach OTel instrumentation for Phoenix and Bandit
+    OpentelemetryBandit.setup()
+    OpentelemetryPhoenix.setup()
+
     # Timeless opts
     store = TimelessPhoenix.store_name(name)
     reporter_name = TimelessPhoenix.reporter_name(name)

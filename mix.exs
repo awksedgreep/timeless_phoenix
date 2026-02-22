@@ -38,6 +38,10 @@ defmodule TimelessPhoenix.MixProject do
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
 
+      # OpenTelemetry instrumentation (auto-traces for Phoenix + Bandit)
+      {:opentelemetry_phoenix, "~> 2.0"},
+      {:opentelemetry_bandit, "~> 0.3.0"},
+
       # Installer (optional — only used by mix igniter.install)
       {:igniter, "~> 0.6", optional: true}
     ]
