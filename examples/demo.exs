@@ -86,7 +86,7 @@ IO.puts("""
   Pages:
     /dashboard/timeless — Metrics TSDB
     /dashboard/logs     — Log search & tail
-    /dashboard/spans    — Trace waterfall
+    /dashboard/traces   — Trace waterfall
     /dashboard/metrics  — Live charts (with history)
 ========================================
 """)
