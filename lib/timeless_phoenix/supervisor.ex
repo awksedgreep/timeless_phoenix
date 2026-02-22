@@ -41,7 +41,7 @@ defmodule TimelessPhoenix.Supervisor do
 
     # Attach OTel instrumentation for Phoenix and Bandit
     OpentelemetryBandit.setup()
-    OpentelemetryPhoenix.setup()
+    OpentelemetryPhoenix.setup(adapter: :bandit)
 
     # Timeless opts
     store = TimelessPhoenix.store_name(name)
