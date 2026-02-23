@@ -4,37 +4,47 @@ Unified observability for Phoenix: persistent metrics, logs, and traces in LiveD
 
 One dep, one child_spec, one router macro — you get:
 
-- **Metrics** — Timeless TSDB stores telemetry metrics that survive restarts
-- **Logs** — LogStream captures and indexes Elixir Logger output
-- **Traces** — SpanStream stores OpenTelemetry spans
+- **Metrics** — TimelessMetrics stores telemetry metrics that survive restarts
+- **Logs** — TimelessLogs captures and indexes Elixir Logger output
+- **Traces** — TimelessTraces stores OpenTelemetry spans
 - **Dashboard** — All three as LiveDashboard pages, plus built-in charts with history
 
 ## Installation
 
 ### With Igniter (recommended)
 
-If you have [Igniter](https://hex.pm/packages/igniter) installed:
+Add the dependency to `mix.exs`:
+
+```elixir
+{:timeless_phoenix, path: "../timeless_phoenix"},
+{:igniter, "~> 0.6"}
+```
+
+Then run:
 
 ```bash
-mix igniter.install timeless_phoenix
+mix deps.get
+mix timeless_phoenix.install
 ```
 
 This automatically:
 
 1. Adds `{TimelessPhoenix, data_dir: "priv/observability"}` to your supervision tree
-2. Adds `import TimelessPhoenix.Router` to your Phoenix router
-3. Adds `timeless_phoenix_dashboard "/dashboard"` to your browser scope
-4. Updates `.formatter.exs`
+2. Configures OpenTelemetry to export spans to TimelessTraces
+3. Adds `import TimelessPhoenix.Router` to your Phoenix router
+4. Adds `timeless_phoenix_dashboard "/dashboard"` to your browser scope
+5. Removes the default `live_dashboard` route (avoids live_session conflict)
+6. Updates `.formatter.exs`
 
 For development or when you don't need persistent logs/traces, use memory
 storage:
 
 ```bash
-mix igniter.install timeless_phoenix --storage memory
+mix timeless_phoenix.install --storage memory
 ```
 
-This configures LogStream and SpanStream to store data in memory (lost on
-restart). Metrics are always persisted to disk via Timeless.
+This configures TimelessLogs and TimelessTraces to store data in memory
+(lost on restart). Metrics are always persisted to disk.
 
 ### Manual
 
@@ -64,6 +74,23 @@ scope "/" do
 end
 ```
 
+Configure OpenTelemetry to export spans (`config/config.exs`):
+
+```elixir
+config :opentelemetry, traces_exporter: {TimelessTraces.Exporter, []}
+```
+
+Remove the default `live_dashboard` route from your router — it's
+typically inside an `if Application.compile_env(:my_app, :dev_routes)`
+block. TimelessPhoenix provides its own dashboard at the same path, and
+having both causes a live_session conflict.
+
+Add `:timeless_phoenix` to your `.formatter.exs` import_deps:
+
+```elixir
+[import_deps: [:timeless_phoenix, ...]]
+```
+
 ## Configuration
 
 ### Child spec options
@@ -73,9 +100,9 @@ end
 | `:data_dir` | **required** | Base directory; creates `metrics/`, `logs/`, `spans/` subdirs |
 | `:name` | `:default` | Instance name for process naming |
 | `:metrics` | `DefaultMetrics.all()` | `Telemetry.Metrics` list for the reporter |
-| `:timeless` | `[]` | Extra opts forwarded to Timeless |
-| `:log_stream` | `[]` | Application env overrides for LogStream |
-| `:span_stream` | `[]` | Application env overrides for SpanStream |
+| `:timeless` | `[]` | Extra opts forwarded to TimelessMetrics |
+| `:timeless_logs` | `[]` | Application env overrides for TimelessLogs |
+| `:timeless_traces` | `[]` | Application env overrides for TimelessTraces |
 | `:reporter` | `[]` | Extra opts for Reporter (`:flush_interval`, `:prefix`) |
 
 ### Router macro options
@@ -107,9 +134,9 @@ live_dashboard "/dashboard",
 
 ## Running in Production
 
-By default, Phoenix generators place `live_dashboard` inside a
-`if Mix.env() == :dev` block. To run in production, move it out of that
-guard and add authentication.
+The Igniter installer places `timeless_phoenix_dashboard` in a top-level
+browser scope so it's available in all environments. To restrict access in
+production, add authentication.
 
 ### Authentication
 
@@ -193,8 +220,8 @@ Or configure at runtime:
 
 ## Custom Metrics
 
-The default metrics include VM, Phoenix, LiveView, Timeless, LogStream,
-and SpanStream telemetry. To add your own:
+The default metrics include VM, Phoenix, LiveView, TimelessMetrics,
+TimelessLogs, and TimelessTraces telemetry. To add your own:
 
 ```elixir
 defmodule MyApp.Telemetry do
@@ -219,11 +246,3 @@ Then pass it to both the child spec and router:
 # router.ex
 timeless_phoenix_dashboard "/dashboard", metrics: MyApp.Telemetry
 ```
-
-## Demo
-
-```bash
-mix run examples/demo.exs
-```
-
-Open http://localhost:4000/dashboard to see all pages.
