@@ -43,6 +43,9 @@ defmodule TimelessPhoenix.Supervisor do
     OpentelemetryBandit.setup()
     OpentelemetryPhoenix.setup(adapter: :bandit)
 
+    # Propagate OTel trace context into Logger metadata so logs carry trace_id/span_id
+    TimelessPhoenix.LoggerPropagator.attach()
+
     # Timeless opts
     store = TimelessPhoenix.store_name(name)
     reporter_name = TimelessPhoenix.reporter_name(name)
