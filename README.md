@@ -9,6 +9,17 @@ One dep, one child_spec, one router macro — you get:
 - **Traces** — SpanStream stores OpenTelemetry spans
 - **Dashboard** — All three as LiveDashboard pages, plus built-in charts with history
 
+## Documentation
+
+- [Getting Started](docs/getting_started.md)
+- [Configuration Reference](docs/configuration.md)
+- [Architecture](docs/architecture.md)
+- [Dashboard](docs/dashboard.md)
+- [Metrics](docs/metrics.md)
+- [Demo Traffic Generator](docs/demo_traffic.md)
+- [Production Deployment](docs/production.md)
+- [Interactive Demo Livebook](livebook/demo.livemd)
+
 ## Installation
 
 ### With Igniter (recommended)
@@ -74,8 +85,8 @@ end
 | `:name` | `:default` | Instance name for process naming |
 | `:metrics` | `DefaultMetrics.all()` | `Telemetry.Metrics` list for the reporter |
 | `:timeless` | `[]` | Extra opts forwarded to Timeless |
-| `:log_stream` | `[]` | Application env overrides for LogStream |
-| `:span_stream` | `[]` | Application env overrides for SpanStream |
+| `:timeless_logs` | `[]` | Application env overrides for TimelessLogs |
+| `:timeless_traces` | `[]` | Application env overrides for TimelessTraces |
 | `:reporter` | `[]` | Extra opts for Reporter (`:flush_interval`, `:prefix`) |
 
 ### Router macro options
