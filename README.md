@@ -1,5 +1,7 @@
 # TimelessPhoenix
 
+> "I always found it odd that the first thing you do to time series data is squash the timestamp. That's how the name Timeless was born." --Mark Cotner
+
 Unified observability for Phoenix: persistent metrics, logs, and traces in LiveDashboard.
 
 One dep, one child_spec, one router macro — you get:
