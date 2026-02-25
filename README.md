@@ -52,7 +52,7 @@ restart). Metrics are always persisted to disk via Timeless.
 Add the dependency to `mix.exs`:
 
 ```elixir
-{:timeless_phoenix, path: "../timeless_phoenix"}
+{:timeless_phoenix, github: "awksedgreep/timeless_phoenix"}
 ```
 
 Add to your application's supervision tree (`lib/my_app/application.ex`):

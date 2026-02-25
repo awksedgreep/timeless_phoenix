@@ -10,7 +10,11 @@ defmodule TimelessPhoenix.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      description: "Unified observability for Phoenix: persistent metrics, logs, and traces in LiveDashboard."
+      description: "Unified observability for Phoenix: persistent metrics, logs, and traces in LiveDashboard.",
+      source_url: "https://github.com/awksedgreep/timeless_phoenix",
+      homepage_url: "https://github.com/awksedgreep/timeless_phoenix",
+      package: package(),
+      docs: docs()
     ]
   end
 
@@ -20,17 +24,35 @@ defmodule TimelessPhoenix.MixProject do
     ]
   end
 
+  defp package do
+    [
+      maintainers: ["Matt Cotner"],
+      files: ~w(lib .formatter.exs mix.exs README.md LICENSE),
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/awksedgreep/timeless_phoenix"}
+    ]
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      extras:
+        ["README.md", "LICENSE"] ++
+          Path.wildcard("docs/*.md")
+    ]
+  end
+
   defp deps do
     [
       # Storage engines (override: child dashboards also depend on these)
-      {:timeless_metrics, path: "../timeless_metrics", override: true},
-      {:timeless_logs, path: "../timeless_logs", override: true},
-      {:timeless_traces, path: "../timeless_traces", override: true},
+      {:timeless_metrics, github: "awksedgreep/timeless_metrics", override: true},
+      {:timeless_logs, github: "awksedgreep/timeless_logs", override: true},
+      {:timeless_traces, github: "awksedgreep/timeless_traces", override: true},
 
       # Dashboard pages
-      {:timeless_metrics_dashboard, path: "../timeless_metrics_dashboard"},
-      {:timeless_logs_dashboard, path: "../timeless_logs_dashboard"},
-      {:timeless_traces_dashboard, path: "../timeless_traces_dashboard"},
+      {:timeless_metrics_dashboard, github: "awksedgreep/timeless_metrics_dashboard"},
+      {:timeless_logs_dashboard, github: "awksedgreep/timeless_logs_dashboard"},
+      {:timeless_traces_dashboard, github: "awksedgreep/timeless_traces_dashboard"},
 
       # Phoenix / LiveDashboard
       {:phoenix_live_dashboard, "~> 0.8"},

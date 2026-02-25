@@ -4,3 +4,7 @@
 /priv/
 *.ez
 mix.lock
+
+# Environment files
+.env
+.env.*
