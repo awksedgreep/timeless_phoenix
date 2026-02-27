@@ -26,7 +26,7 @@ if Code.ensure_loaded?(Igniter) do
     3. Adds `import TimelessPhoenix.Router` to your Phoenix router
     4. Adds `timeless_phoenix_dashboard "/dashboard"` to your router's browser scope
     5. Adds `:timeless_phoenix` to your `.formatter.exs` import_deps
-    6. Reminds you to remove the default LiveDashboard route (avoids live_session conflict)
+    6. Removes the default `live_dashboard` route (avoids live_session conflict)
     """
 
     use Igniter.Mix.Task
@@ -122,14 +122,35 @@ if Code.ensure_loaded?(Igniter) do
     end
 
     # Removes the default Phoenix LiveDashboard route to avoid live_session conflicts.
+    # The default Phoenix generator puts `live_dashboard "/dashboard"` inside
+    # `if Application.compile_env(:app, :dev_routes) do ... end` — we remove
+    # the `live_dashboard` call since TimelessPhoenix provides its own dashboard.
     defp remove_default_live_dashboard(igniter) do
-      Igniter.add_notice(igniter, """
-      TimelessPhoenix installs its own LiveDashboard at /dashboard.
+      case Igniter.Libs.Phoenix.select_router(igniter) do
+        {igniter, nil} ->
+          igniter
 
-      If your router has a default LiveDashboard route (typically in a
-      `if Application.compile_env(:your_app, :dev_routes)` block), you should
-      remove it to avoid a live_session conflict.
-      """)
+        {igniter, router} ->
+          Igniter.Project.Module.find_and_update_module!(igniter, router, fn zipper ->
+            # Remove `live_dashboard` calls (our macro provides its own)
+            zipper =
+              Igniter.Code.Common.remove_all_matches(zipper, fn z ->
+                Igniter.Code.Function.function_call?(z, :live_dashboard, :any)
+              end)
+
+            # Remove `import Phoenix.LiveDashboard.Router` (now unused)
+            zipper =
+              Igniter.Code.Common.remove_all_matches(zipper, fn z ->
+                Igniter.Code.Function.function_call?(z, :import, 1) &&
+                  match?(
+                    {:ok, %Sourceror.Zipper{node: {:__aliases__, _, [:Phoenix, :LiveDashboard, :Router]}}},
+                    Igniter.Code.Function.move_to_nth_argument(z, 0)
+                  )
+              end)
+
+            {:ok, zipper}
+          end)
+      end
     end
 
     # Adds `import TimelessPhoenix.Router` after `use Phoenix.Router` in the router module.
