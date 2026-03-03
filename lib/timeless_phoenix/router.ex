@@ -41,16 +41,17 @@ defmodule TimelessPhoenix.Router do
       store = TimelessPhoenix.store_name(name)
       extra = Keyword.get(opts, :live_dashboard, [])
 
-      forward download_path, TimelessMetricsDashboard.DownloadPlug, store: store
+      forward(download_path, TimelessMetricsDashboard.DownloadPlug, store: store)
 
       dashboard_opts =
         [
           metrics: metrics_mod,
           metrics_history: {TimelessPhoenix, :metrics_history, [name]},
-          additional_pages: TimelessPhoenix.dashboard_pages(name: name, download_path: download_path)
+          additional_pages:
+            TimelessPhoenix.dashboard_pages(name: name, download_path: download_path)
         ] ++ extra
 
-      live_dashboard path, dashboard_opts
+      live_dashboard(path, dashboard_opts)
     end
   end
 end

@@ -1,7 +1,7 @@
 defmodule TimelessPhoenix.MixProject do
   use Mix.Project
 
-  @version "1.0.3"
+  @version "1.0.4"
 
   def project do
     [
@@ -10,7 +10,8 @@ defmodule TimelessPhoenix.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      description: "Unified observability for Phoenix: persistent metrics, logs, and traces in LiveDashboard.",
+      description:
+        "Unified observability for Phoenix: persistent metrics, logs, and traces in LiveDashboard.",
       source_url: "https://github.com/awksedgreep/timeless_phoenix",
       homepage_url: "https://github.com/awksedgreep/timeless_phoenix",
       package: package(),

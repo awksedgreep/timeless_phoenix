@@ -143,7 +143,10 @@ if Code.ensure_loaded?(Igniter) do
               Igniter.Code.Common.remove_all_matches(zipper, fn z ->
                 Igniter.Code.Function.function_call?(z, :import, 1) &&
                   match?(
-                    {:ok, %Sourceror.Zipper{node: {:__aliases__, _, [:Phoenix, :LiveDashboard, :Router]}}},
+                    {:ok,
+                     %Sourceror.Zipper{
+                       node: {:__aliases__, _, [:Phoenix, :LiveDashboard, :Router]}
+                     }},
                     Igniter.Code.Function.move_to_nth_argument(z, 0)
                   )
               end)

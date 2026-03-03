@@ -220,9 +220,7 @@ if Code.ensure_loaded?(Igniter) do
       # Task.Supervisor must come before DemoTraffic in the children list
       igniter
       |> Igniter.Project.Application.add_new_child(demo_module)
-      |> Igniter.Project.Application.add_new_child(
-        {Task.Supervisor, name: task_sup_module}
-      )
+      |> Igniter.Project.Application.add_new_child({Task.Supervisor, name: task_sup_module})
     end
   end
 else

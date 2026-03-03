@@ -3,6 +3,20 @@ defmodule TimelessPhoenix.Supervisor do
 
   use Supervisor
 
+  @embedded_log_defaults [
+    retention_max_age: 3 * 86_400,
+    retention_max_size: 128 * 1_048_576,
+    retention_check_interval: 60_000,
+    max_term_index_entries: 100_000
+  ]
+
+  @embedded_trace_defaults [
+    retention_max_age: 3 * 86_400,
+    retention_max_size: 128 * 1_048_576,
+    retention_check_interval: 60_000,
+    max_term_index_entries: 50_000
+  ]
+
   def start_link(opts) do
     name = Keyword.get(opts, :name, :default)
     sup_name = :"tp_#{name}_sup"
@@ -24,15 +38,17 @@ defmodule TimelessPhoenix.Supervisor do
 
     # Configure TimelessLogs app env before starting
     log_overrides = Keyword.get(opts, :timeless_logs, [])
+    merged_logs = Keyword.merge(@embedded_log_defaults, log_overrides)
 
-    for {key, val} <- [{:data_dir, logs_dir} | log_overrides] do
+    for {key, val} <- [{:data_dir, logs_dir} | merged_logs] do
       Application.put_env(:timeless_logs, key, val)
     end
 
     # Configure TimelessTraces app env before starting
     trace_overrides = Keyword.get(opts, :timeless_traces, [])
+    merged_traces = Keyword.merge(@embedded_trace_defaults, trace_overrides)
 
-    for {key, val} <- [{:data_dir, spans_dir} | trace_overrides] do
+    for {key, val} <- [{:data_dir, spans_dir} | merged_traces] do
       Application.put_env(:timeless_traces, key, val)
     end
 
@@ -52,7 +68,14 @@ defmodule TimelessPhoenix.Supervisor do
     timeless_extra = Keyword.get(opts, :timeless, [])
 
     timeless_opts =
-      [name: store, data_dir: metrics_dir] ++ timeless_extra
+      [
+        name: store,
+        data_dir: metrics_dir,
+        raw_retention_seconds: 3 * 86_400,
+        daily_retention_seconds: 90 * 86_400,
+        max_blocks: 50
+      ]
+      |> Keyword.merge(timeless_extra)
 
     # Reporter opts
     metrics = Keyword.get_lazy(opts, :metrics, &TimelessPhoenix.DefaultMetrics.all/0)
