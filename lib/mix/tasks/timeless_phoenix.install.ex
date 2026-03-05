@@ -10,18 +10,25 @@ if Code.ensure_loaded?(Igniter) do
     ## Usage
 
         mix igniter.install timeless_phoenix
-        mix igniter.install timeless_phoenix --storage memory
+        mix igniter.install timeless_phoenix --storage disk
 
     ## Options
 
-      * `--storage` — `disk` (default) or `memory`. Memory mode stores logs and
-        traces in memory only (lost on restart). Metrics are always persisted to disk.
+      * `--storage` — `memory` (default) or `disk`. Memory mode stores logs and
+        traces in memory only (lost on restart). Disk mode persists them with
+        indexing and retention management. Metrics are always persisted to disk.
+      * `--http` — Enable HTTP ingest/query endpoints for metrics, logs, and traces.
+      * `--http-metrics` — Enable only the metrics HTTP endpoint.
+      * `--http-logs` — Enable only the logs HTTP endpoint.
+      * `--http-traces` — Enable only the traces HTTP endpoint.
+      * `--metrics-port` — Port for the metrics HTTP endpoint (default 8428).
+      * `--logs-port` — Port for the logs HTTP endpoint (default 9428).
+      * `--traces-port` — Port for the traces HTTP endpoint (default 10428).
 
     ## What it does
 
-    1. Adds `{TimelessPhoenix, data_dir: "priv/observability"}` to your application's
-       supervision tree (with `timeless_logs: [storage: :memory], timeless_traces: [storage: :memory]`
-       when `--storage memory` is used)
+    1. Adds `{TimelessPhoenix, ...}` to your application's supervision tree
+       (logs and traces default to in-memory storage; use `--storage disk` for persistence)
     2. Configures OpenTelemetry to export spans to TimelessTraces
     3. Adds `import TimelessPhoenix.Router` to your Phoenix router
     4. Adds `timeless_phoenix_dashboard "/dashboard"` to your router's browser scope
@@ -35,44 +42,83 @@ if Code.ensure_loaded?(Igniter) do
     def info(_argv, _composing_task) do
       %Igniter.Mix.Task.Info{
         group: :timeless_phoenix,
-        schema: [storage: :string],
-        defaults: [storage: "disk"],
+        schema: [
+          storage: :string,
+          http: :boolean,
+          http_metrics: :boolean,
+          http_logs: :boolean,
+          http_traces: :boolean,
+          metrics_port: :integer,
+          logs_port: :integer,
+          traces_port: :integer
+        ],
+        defaults: [storage: "memory"],
         required: [],
         positional: [],
         aliases: [],
         composes: [],
         installs: [],
         adds_deps: [],
-        example: "mix igniter.install timeless_phoenix --storage memory"
+        example: "mix igniter.install timeless_phoenix --storage disk"
       }
     end
 
     @impl Igniter.Mix.Task
     def igniter(igniter) do
       storage = igniter.args.options[:storage] || "disk"
+      http_opts = resolve_http_opts(igniter.args.options)
 
       igniter
-      |> add_to_supervision_tree(storage)
+      |> add_to_supervision_tree(storage, http_opts)
       |> configure_opentelemetry()
       |> setup_router()
       |> remove_default_live_dashboard()
       |> Igniter.Project.Formatter.import_dep(:timeless_phoenix)
     end
 
+    defp resolve_http_opts(options) do
+      all? = options[:http] || false
+
+      enabled =
+        []
+        |> then(fn acc ->
+          if all? || options[:http_metrics], do: [{:metrics, options[:metrics_port] || 8428} | acc], else: acc
+        end)
+        |> then(fn acc ->
+          if all? || options[:http_logs], do: [{:logs, options[:logs_port] || 9428} | acc], else: acc
+        end)
+        |> then(fn acc ->
+          if all? || options[:http_traces], do: [{:traces, options[:traces_port] || 10428} | acc], else: acc
+        end)
+        |> Enum.reverse()
+
+      enabled
+    end
+
     # Adds {TimelessPhoenix, ...} to the application's children list.
-    defp add_to_supervision_tree(igniter, storage) do
-      child_code =
+    defp add_to_supervision_tree(igniter, storage, http_opts) do
+      opts_parts = [~s(data_dir: "priv/observability")]
+
+      opts_parts =
         case storage do
           "memory" ->
-            Sourceror.parse_string!("""
-            [data_dir: "priv/observability",
-             timeless_logs: [storage: :memory],
-             timeless_traces: [storage: :memory]]
-            """)
+            opts_parts ++
+              ["timeless_logs: [storage: :memory]", "timeless_traces: [storage: :memory]"]
 
           _ ->
-            Sourceror.parse_string!(~s([data_dir: "priv/observability"]))
+            opts_parts
         end
+
+      opts_parts =
+        case http_opts do
+          [] -> opts_parts
+          entries ->
+            http_kw = Enum.map_join(entries, ", ", fn {k, v} -> "#{k}: #{v}" end)
+            opts_parts ++ ["http: [#{http_kw}]"]
+        end
+
+      opts_string = "[" <> Enum.join(opts_parts, ", ") <> "]"
+      child_code = Sourceror.parse_string!(opts_string)
 
       Igniter.Project.Application.add_new_child(
         igniter,

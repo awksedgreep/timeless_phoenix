@@ -42,22 +42,51 @@ mix timeless_phoenix.install
 
 This automatically:
 
-1. Adds `{TimelessPhoenix, data_dir: "priv/observability"}` to your supervision tree
+1. Adds `{TimelessPhoenix, ...}` to your supervision tree
 2. Configures OpenTelemetry to export spans to TimelessTraces
 3. Adds `import TimelessPhoenix.Router` to your Phoenix router
 4. Adds `timeless_phoenix_dashboard "/dashboard"` to your browser scope
 5. Removes the default `live_dashboard` route (avoids live_session conflict)
 6. Updates `.formatter.exs`
 
-For development or when you don't need persistent logs/traces, use memory
-storage:
+By default, logs and traces are stored in memory (lost on restart) to keep
+the footprint small. Metrics are always persisted to disk. To persist logs
+and traces to disk with indexing and retention management:
 
 ```bash
-mix timeless_phoenix.install --storage memory
+mix timeless_phoenix.install --storage disk
 ```
 
-This configures TimelessLogs and TimelessTraces to store data in memory
-(lost on restart). Metrics are always persisted to disk.
+### HTTP Endpoints
+
+To expose HTTP ingest/query endpoints for external tooling (Grafana, curl, etc.),
+use the `--http` flag to enable all three:
+
+```bash
+mix timeless_phoenix.install --http
+```
+
+Or enable them individually:
+
+```bash
+mix timeless_phoenix.install --http-metrics --http-logs
+```
+
+Default ports are 8428 (metrics), 9428 (logs), and 10428 (traces). Override with:
+
+```bash
+mix timeless_phoenix.install --http --metrics-port 9090 --logs-port 3100 --traces-port 4318
+```
+
+| Flag | Description |
+|------|-------------|
+| `--http` | Enable all HTTP endpoints |
+| `--http-metrics` | Enable metrics HTTP endpoint |
+| `--http-logs` | Enable logs HTTP endpoint |
+| `--http-traces` | Enable traces HTTP endpoint |
+| `--metrics-port` | Metrics port (default 8428) |
+| `--logs-port` | Logs port (default 9428) |
+| `--traces-port` | Traces port (default 10428) |
 
 ### Manual
 

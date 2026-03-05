@@ -36,11 +36,22 @@ defmodule TimelessPhoenix.Supervisor do
     File.mkdir_p!(logs_dir)
     File.mkdir_p!(spans_dir)
 
+    # HTTP endpoint config
+    http = Keyword.get(opts, :http, [])
+
     # Configure TimelessLogs app env before starting
     log_overrides = Keyword.get(opts, :timeless_logs, [])
     merged_logs = Keyword.merge(@embedded_log_defaults, log_overrides)
 
-    for {key, val} <- [{:data_dir, logs_dir} | merged_logs] do
+    log_env = [{:data_dir, logs_dir} | merged_logs]
+
+    log_env =
+      case Keyword.fetch(http, :logs) do
+        {:ok, port} -> [{:http, [port: port]} | log_env]
+        :error -> log_env
+      end
+
+    for {key, val} <- log_env do
       Application.put_env(:timeless_logs, key, val)
     end
 
@@ -48,7 +59,15 @@ defmodule TimelessPhoenix.Supervisor do
     trace_overrides = Keyword.get(opts, :timeless_traces, [])
     merged_traces = Keyword.merge(@embedded_trace_defaults, trace_overrides)
 
-    for {key, val} <- [{:data_dir, spans_dir} | merged_traces] do
+    trace_env = [{:data_dir, spans_dir} | merged_traces]
+
+    trace_env =
+      case Keyword.fetch(http, :traces) do
+        {:ok, port} -> [{:http, [port: port]} | trace_env]
+        :error -> trace_env
+      end
+
+    for {key, val} <- trace_env do
       Application.put_env(:timeless_traces, key, val)
     end
 
@@ -84,17 +103,24 @@ defmodule TimelessPhoenix.Supervisor do
     reporter_opts =
       [store: store, metrics: metrics, name: reporter_name] ++ reporter_extra
 
-    children = [
-      # Start TimelessMetrics (named instance)
-      {TimelessMetrics, timeless_opts},
+    children =
+      [
+        # Start TimelessMetrics (named instance)
+        {TimelessMetrics, timeless_opts}
+      ] ++
+        # Optionally start the metrics HTTP endpoint
+        (case Keyword.fetch(http, :metrics) do
+           {:ok, port} -> [{TimelessMetrics.HTTP, store: store, port: port}]
+           :error -> []
+         end) ++
+        [
+          # Start TimelessLogs and TimelessTraces as OTP apps (singleton)
+          %{id: :timeless_logs_app, start: {__MODULE__, :ensure_app, [:timeless_logs]}},
+          %{id: :timeless_traces_app, start: {__MODULE__, :ensure_app, [:timeless_traces]}},
 
-      # Start TimelessLogs and TimelessTraces as OTP apps (singleton)
-      %{id: :timeless_logs_app, start: {__MODULE__, :ensure_app, [:timeless_logs]}},
-      %{id: :timeless_traces_app, start: {__MODULE__, :ensure_app, [:timeless_traces]}},
-
-      # Start the telemetry reporter
-      {TimelessMetricsDashboard.Reporter, reporter_opts}
-    ]
+          # Start the telemetry reporter
+          {TimelessMetricsDashboard.Reporter, reporter_opts}
+        ]
 
     Supervisor.init(children, strategy: :rest_for_one)
   end
