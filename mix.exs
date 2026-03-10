@@ -1,7 +1,7 @@
 defmodule TimelessPhoenix.MixProject do
   use Mix.Project
 
-  @version "1.3.0"
+  @version "1.3.1"
 
   def project do
     [
@@ -51,9 +51,11 @@ defmodule TimelessPhoenix.MixProject do
       {:timeless_traces, github: "awksedgreep/timeless_traces", tag: "v1.2.0", override: true},
 
       # Dashboard pages
-      {:timeless_metrics_dashboard, github: "awksedgreep/timeless_metrics_dashboard", tag: "v0.3.0"},
+      {:timeless_metrics_dashboard,
+       github: "awksedgreep/timeless_metrics_dashboard", tag: "v0.3.0"},
       {:timeless_logs_dashboard, github: "awksedgreep/timeless_logs_dashboard", tag: "v0.7.0"},
-      {:timeless_traces_dashboard, github: "awksedgreep/timeless_traces_dashboard", tag: "v0.3.0"},
+      {:timeless_traces_dashboard,
+       github: "awksedgreep/timeless_traces_dashboard", tag: "v0.3.0"},
 
       # Phoenix / LiveDashboard
       {:phoenix_live_dashboard, "~> 0.8"},

@@ -1,6 +1,22 @@
-# TimelessPhoenix
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/logo-light.svg">
+    <img src="docs/logo-light.svg" width="300" alt="Timeless">
+  </picture>
+</p>
 
-> "I always found it odd that the first thing you do to time series data is squash the timestamp. That's how the name Timeless was born." --Mark Cotner
+<h3 align="center">Unified Observability for Phoenix</h3>
+
+<p align="center">
+  <a href="https://hex.pm/packages/timeless_phoenix"><img src="https://img.shields.io/hexpm/v/timeless_phoenix.svg" alt="Hex.pm"></a>
+  <a href="https://hexdocs.pm/timeless_phoenix"><img src="https://img.shields.io/badge/docs-hexdocs-blue.svg" alt="Docs"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/hexpm/l/timeless_phoenix.svg" alt="License"></a>
+</p>
+
+---
+
+> "I found it ironic that the first thing you do to time series data is squash the timestamp. That's how the name Timeless was born." --Mark Cotner
 
 Unified observability for Phoenix: persistent metrics, logs, and traces in LiveDashboard.
 
