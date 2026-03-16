@@ -1,7 +1,7 @@
 defmodule TimelessPhoenix.MixProject do
   use Mix.Project
 
-  @version "1.3.2"
+  @version "1.4.0"
 
   def project do
     [
@@ -46,16 +46,16 @@ defmodule TimelessPhoenix.MixProject do
   defp deps do
     [
       # Storage engines (override: child dashboards also depend on these)
-      {:timeless_metrics, github: "awksedgreep/timeless_metrics", tag: "v3.7.0", override: true},
-      {:timeless_logs, github: "awksedgreep/timeless_logs", tag: "v1.3.1", override: true},
-      {:timeless_traces, github: "awksedgreep/timeless_traces", tag: "v1.2.1", override: true},
+      {:timeless_metrics, github: "awksedgreep/timeless_metrics", tag: "v5.0.0", override: true},
+      {:timeless_logs, github: "awksedgreep/timeless_logs", tag: "v1.3.2", override: true},
+      {:timeless_traces, github: "awksedgreep/timeless_traces", tag: "v1.2.2", override: true},
 
       # Dashboard pages
       {:timeless_metrics_dashboard,
-       github: "awksedgreep/timeless_metrics_dashboard", tag: "v0.3.2"},
-      {:timeless_logs_dashboard, github: "awksedgreep/timeless_logs_dashboard", tag: "v0.7.1"},
+       github: "awksedgreep/timeless_metrics_dashboard", tag: "v0.4.0"},
+      {:timeless_logs_dashboard, github: "awksedgreep/timeless_logs_dashboard", tag: "v0.7.2"},
       {:timeless_traces_dashboard,
-       github: "awksedgreep/timeless_traces_dashboard", tag: "v0.3.1"},
+       github: "awksedgreep/timeless_traces_dashboard", tag: "v0.3.2"},
 
       # Phoenix / LiveDashboard
       {:phoenix_live_dashboard, "~> 0.8"},

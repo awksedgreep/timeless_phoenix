@@ -103,16 +103,16 @@ defmodule TimelessPhoenix.Supervisor do
     reporter_opts =
       [store: store, metrics: metrics, name: reporter_name] ++ reporter_extra
 
+    # Optionally start the metrics HTTP endpoint
     children =
       [
         # Start TimelessMetrics (named instance)
         {TimelessMetrics, timeless_opts}
       ] ++
-        # Optionally start the metrics HTTP endpoint
-        (case Keyword.fetch(http, :metrics) do
-           {:ok, port} -> [{TimelessMetrics.HTTP, store: store, port: port}]
-           :error -> []
-         end) ++
+        case Keyword.fetch(http, :metrics) do
+          {:ok, port} -> [{TimelessMetrics.HTTP, store: store, port: port}]
+          :error -> []
+        end ++
         [
           # Start TimelessLogs and TimelessTraces as OTP apps (singleton)
           %{id: :timeless_logs_app, start: {__MODULE__, :ensure_app, [:timeless_logs]}},

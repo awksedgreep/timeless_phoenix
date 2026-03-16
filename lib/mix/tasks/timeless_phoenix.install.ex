@@ -82,13 +82,19 @@ if Code.ensure_loaded?(Igniter) do
       enabled =
         []
         |> then(fn acc ->
-          if all? || options[:http_metrics], do: [{:metrics, options[:metrics_port] || 8428} | acc], else: acc
+          if all? || options[:http_metrics],
+            do: [{:metrics, options[:metrics_port] || 8428} | acc],
+            else: acc
         end)
         |> then(fn acc ->
-          if all? || options[:http_logs], do: [{:logs, options[:logs_port] || 9428} | acc], else: acc
+          if all? || options[:http_logs],
+            do: [{:logs, options[:logs_port] || 9428} | acc],
+            else: acc
         end)
         |> then(fn acc ->
-          if all? || options[:http_traces], do: [{:traces, options[:traces_port] || 10428} | acc], else: acc
+          if all? || options[:http_traces],
+            do: [{:traces, options[:traces_port] || 10428} | acc],
+            else: acc
         end)
         |> Enum.reverse()
 
@@ -111,7 +117,9 @@ if Code.ensure_loaded?(Igniter) do
 
       opts_parts =
         case http_opts do
-          [] -> opts_parts
+          [] ->
+            opts_parts
+
           entries ->
             http_kw = Enum.map_join(entries, ", ", fn {k, v} -> "#{k}: #{v}" end)
             opts_parts ++ ["http: [#{http_kw}]"]
