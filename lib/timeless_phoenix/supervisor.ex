@@ -4,17 +4,17 @@ defmodule TimelessPhoenix.Supervisor do
   use Supervisor
 
   @embedded_log_defaults [
-    retention_max_age: 3 * 86_400,
-    retention_max_size: 128 * 1_048_576,
+    retention_max_age: 7 * 86_400,
+    retention_max_size: nil,
     retention_check_interval: 60_000,
-    max_term_index_entries: 100_000
+    max_term_index_entries: nil
   ]
 
   @embedded_trace_defaults [
-    retention_max_age: 3 * 86_400,
-    retention_max_size: 128 * 1_048_576,
+    retention_max_age: 7 * 86_400,
+    retention_max_size: nil,
     retention_check_interval: 60_000,
-    max_term_index_entries: 50_000
+    max_term_index_entries: nil
   ]
 
   def start_link(opts) do
@@ -90,7 +90,7 @@ defmodule TimelessPhoenix.Supervisor do
       [
         name: store,
         data_dir: metrics_dir,
-        raw_retention_seconds: 3 * 86_400,
+        raw_retention_seconds: 7 * 86_400,
         daily_retention_seconds: 90 * 86_400,
         max_blocks: 50
       ]
@@ -127,6 +127,11 @@ defmodule TimelessPhoenix.Supervisor do
 
   @doc false
   def ensure_app(app) do
+    # The app may have been auto-started by OTP with default config before
+    # our Application.put_env calls above. Stop it first so it restarts
+    # with the correct config.
+    Application.stop(app)
+
     case Application.ensure_all_started(app) do
       {:ok, _} -> :ignore
       {:error, reason} -> {:error, reason}

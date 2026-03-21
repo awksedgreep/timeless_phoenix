@@ -276,6 +276,50 @@ Or configure at runtime:
 {TimelessPhoenix, data_dir: System.get_env("OBS_DATA_DIR", "/var/lib/my_app/observability")}
 ```
 
+## Data Retention
+
+TimelessPhoenix ships with sensible defaults for embedded use. All three
+engines retain 7 days of data by default.
+
+| Engine | Default Retention | Size Limit |
+|--------|------------------|------------|
+| Metrics (raw) | 7 days | none |
+| Metrics (daily rollup) | 90 days | none |
+| Logs | 7 days | none |
+| Traces | 7 days | none |
+
+### Customizing retention
+
+Override via the `:timeless_logs` and `:timeless_traces` child spec options:
+
+```elixir
+{TimelessPhoenix,
+  data_dir: "priv/observability",
+  timeless_logs: [
+    retention_max_age: 30 * 86_400,       # 30 days
+    retention_max_size: 1_073_741_824,     # 1 GB cap (nil = unlimited)
+    retention_check_interval: 120_000      # check every 2 minutes
+  ],
+  timeless_traces: [
+    retention_max_age: 14 * 86_400,        # 14 days
+    retention_max_size: 512 * 1_048_576    # 512 MB cap
+  ]}
+```
+
+For metrics, use the `:timeless` key:
+
+```elixir
+{TimelessPhoenix,
+  data_dir: "priv/observability",
+  timeless: [
+    raw_retention_seconds: 14 * 86_400,    # 14 days raw
+    daily_retention_seconds: 180 * 86_400  # 180 days rolled up
+  ]}
+```
+
+Setting `retention_max_age` to `nil` disables time-based retention.
+Setting `retention_max_size` to `nil` disables size-based retention (default).
+
 ## Custom Metrics
 
 The default metrics include VM, Phoenix, LiveView, TimelessMetrics,

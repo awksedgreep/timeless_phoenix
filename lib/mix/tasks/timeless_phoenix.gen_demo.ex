@@ -12,6 +12,11 @@ if Code.ensure_loaded?(Igniter) do
     ## Usage
 
         mix timeless_phoenix.gen_demo
+        mix timeless_phoenix.gen_demo --interval 200
+
+    ## Options
+
+    * `--interval` — Traffic generation interval in milliseconds (default: 2000)
 
     ## What it does
 
@@ -181,15 +186,15 @@ if Code.ensure_loaded?(Igniter) do
     def info(_argv, _composing_task) do
       %Igniter.Mix.Task.Info{
         group: :timeless_phoenix,
-        schema: [],
-        defaults: [],
+        schema: [interval: :integer],
+        defaults: [interval: 2000],
         required: [],
         positional: [],
         aliases: [],
         composes: [],
         installs: [],
         adds_deps: [],
-        example: "mix timeless_phoenix.gen_demo"
+        example: "mix timeless_phoenix.gen_demo --interval 200"
       }
     end
 
@@ -201,19 +206,28 @@ if Code.ensure_loaded?(Igniter) do
 
       demo_module = Module.concat(base_module, DemoTraffic)
       task_sup_module = Module.concat(base_module, DemoTaskSupervisor)
+      interval = igniter.args.options[:interval] || 2000
 
       igniter
-      |> create_demo_traffic_module(demo_module, task_sup_module, otp_app)
+      |> create_demo_traffic_module(demo_module, task_sup_module, otp_app, interval)
       |> add_to_supervision_tree(demo_module, task_sup_module)
     end
 
-    defp create_demo_traffic_module(igniter, demo_module, task_sup_module, otp_app) do
+    defp create_demo_traffic_module(igniter, demo_module, task_sup_module, otp_app, interval) do
       contents =
         @template
         |> String.replace("__TASK_SUP__", inspect(task_sup_module))
         |> String.replace("__OTP_APP__", Atom.to_string(otp_app))
+        |> String.replace("@interval 2_000", "@interval #{interval}")
 
-      Igniter.Project.Module.create_module(igniter, demo_module, contents)
+      contents = """
+      defmodule #{inspect(demo_module)} do
+        #{contents}
+      end
+      """
+
+      path = Igniter.Project.Module.proper_location(igniter, demo_module, :source_folder)
+      Igniter.create_new_file(igniter, path, contents, on_exists: :overwrite)
     end
 
     defp add_to_supervision_tree(igniter, demo_module, task_sup_module) do
