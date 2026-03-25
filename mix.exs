@@ -46,7 +46,7 @@ defmodule TimelessPhoenix.MixProject do
   defp deps do
     [
       # Storage engines (override: child dashboards also depend on these)
-      {:timeless_metrics, github: "awksedgreep/timeless_metrics", tag: "v5.0.1", override: true},
+      {:timeless_metrics, github: "awksedgreep/timeless_metrics", tag: "v6.0.0", override: true},
       {:timeless_logs, github: "awksedgreep/timeless_logs", tag: "v1.4.1", override: true},
       {:timeless_traces, github: "awksedgreep/timeless_traces", tag: "v1.3.1", override: true},
 

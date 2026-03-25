@@ -90,6 +90,7 @@ defmodule TimelessPhoenix.Supervisor do
       [
         name: store,
         data_dir: metrics_dir,
+        engine: :rust,
         raw_retention_seconds: 7 * 86_400,
         daily_retention_seconds: 90 * 86_400,
         max_blocks: 50
