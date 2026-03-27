@@ -25,13 +25,19 @@ This automatically:
 4. Adds `timeless_phoenix_dashboard "/dashboard"` to your browser scope
 5. Updates `.formatter.exs`
 
-For development or when you don't need persistent logs/traces:
+By default, the installer configures disk-backed metrics, logs, and traces:
+
+```bash
+mix igniter.install timeless_phoenix
+```
+
+If you want ephemeral logs and traces for development or CI:
 
 ```bash
 mix igniter.install timeless_phoenix --storage memory
 ```
 
-Memory mode stores logs and traces in memory only (lost on restart). Metrics are always persisted to disk.
+Memory mode stores logs and traces in memory only (lost on restart). Metrics are still persisted to disk.
 
 ## Manual installation
 

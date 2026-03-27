@@ -65,12 +65,12 @@ This automatically:
 5. Removes the default `live_dashboard` route (avoids live_session conflict)
 6. Updates `.formatter.exs`
 
-By default, logs and traces are stored in memory (lost on restart) to keep
-the footprint small. Metrics are always persisted to disk. To persist logs
-and traces to disk with indexing and retention management:
+By default, metrics, logs, and traces are all persisted to disk under
+`priv/observability`. If you want logs and traces to stay in memory only for
+CI or ephemeral demo environments:
 
 ```bash
-mix timeless_phoenix.install --storage disk
+mix timeless_phoenix.install --storage memory
 ```
 
 ### HTTP Endpoints

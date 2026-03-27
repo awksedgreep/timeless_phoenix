@@ -149,7 +149,7 @@ For development or CI, store logs and traces in memory (metrics always persist t
   timeless_traces: [storage: :memory]}
 ```
 
-Or via the Igniter installer:
+Or via the Igniter installer when you explicitly want ephemeral logs/traces:
 
 ```bash
 mix igniter.install timeless_phoenix --storage memory

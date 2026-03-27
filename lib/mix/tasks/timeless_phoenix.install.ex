@@ -10,13 +10,13 @@ if Code.ensure_loaded?(Igniter) do
     ## Usage
 
         mix igniter.install timeless_phoenix
-        mix igniter.install timeless_phoenix --storage disk
+        mix igniter.install timeless_phoenix --storage memory
 
     ## Options
 
-      * `--storage` — `memory` (default) or `disk`. Memory mode stores logs and
-        traces in memory only (lost on restart). Disk mode persists them with
-        indexing and retention management. Metrics are always persisted to disk.
+      * `--storage` — `disk` (default) or `memory`. Disk mode persists logs and
+        traces with indexing and retention management. Memory mode keeps them
+        in RAM only and loses them on restart. Metrics are always persisted to disk.
       * `--http` — Enable HTTP ingest/query endpoints for metrics, logs, and traces.
       * `--http-metrics` — Enable only the metrics HTTP endpoint.
       * `--http-logs` — Enable only the logs HTTP endpoint.
@@ -28,7 +28,7 @@ if Code.ensure_loaded?(Igniter) do
     ## What it does
 
     1. Adds `{TimelessPhoenix, ...}` to your application's supervision tree
-       (logs and traces default to in-memory storage; use `--storage disk` for persistence)
+       (logs, traces, and metrics persist to disk by default)
     2. Configures OpenTelemetry to export spans to TimelessTraces
     3. Adds `import TimelessPhoenix.Router` to your Phoenix router
     4. Adds `timeless_phoenix_dashboard "/dashboard"` to your router's browser scope
@@ -52,14 +52,14 @@ if Code.ensure_loaded?(Igniter) do
           logs_port: :integer,
           traces_port: :integer
         ],
-        defaults: [storage: "memory"],
+        defaults: [storage: "disk"],
         required: [],
         positional: [],
         aliases: [],
         composes: [],
         installs: [],
         adds_deps: [],
-        example: "mix igniter.install timeless_phoenix --storage disk"
+        example: "mix igniter.install timeless_phoenix --storage memory"
       }
     end
 
