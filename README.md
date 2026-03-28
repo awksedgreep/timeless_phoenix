@@ -45,8 +45,7 @@ One dep, one child_spec, one router macro — you get:
 Add the dependency to `mix.exs`:
 
 ```elixir
-{:timeless_phoenix, path: "../timeless_phoenix"},
-{:igniter, "~> 0.6"}
+{:timeless_phoenix, "~> 1.5"}
 ```
 
 Then run:
@@ -109,7 +108,7 @@ mix timeless_phoenix.install --http --metrics-port 9090 --logs-port 3100 --trace
 Add the dependency to `mix.exs`:
 
 ```elixir
-{:timeless_phoenix, github: "awksedgreep/timeless_phoenix"}
+{:timeless_phoenix, "~> 1.5"}
 ```
 
 Add to your application's supervision tree (`lib/my_app/application.ex`):

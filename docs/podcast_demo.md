@@ -4,7 +4,7 @@ Step-by-step demo script showing a fresh Phoenix project going from zero to full
 
 ## Pre-requisites (before recording)
 
-1. **Publish to Hex** (or use `github:` deps)
+1. **Publish to Hex**
    - `timeless_metrics`, `timeless_logs`, `timeless_traces`
    - `timeless_metrics_dashboard`, `timeless_logs_dashboard`, `timeless_traces_dashboard`
    - `timeless_phoenix`

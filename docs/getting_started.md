@@ -44,7 +44,7 @@ Memory mode stores logs and traces in memory only (lost on restart). Metrics are
 Add the dependency to `mix.exs`:
 
 ```elixir
-{:timeless_phoenix, path: "../timeless_phoenix"}
+{:timeless_phoenix, "~> 1.5"}
 ```
 
 Add to your supervision tree (`lib/my_app/application.ex`):

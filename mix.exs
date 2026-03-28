@@ -1,7 +1,7 @@
 defmodule TimelessPhoenix.MixProject do
   use Mix.Project
 
-  @version "1.5.2"
+  @version "1.5.5"
 
   def project do
     [
@@ -46,16 +46,14 @@ defmodule TimelessPhoenix.MixProject do
   defp deps do
     [
       # Storage engines (override: child dashboards also depend on these)
-      {:timeless_metrics, github: "awksedgreep/timeless_metrics", tag: "v6.0.1", override: true},
-      {:timeless_logs, github: "awksedgreep/timeless_logs", tag: "v1.4.1", override: true},
-      {:timeless_traces, github: "awksedgreep/timeless_traces", tag: "v1.3.1", override: true},
+      {:timeless_metrics, "~> 6.0.4"},
+      {:timeless_logs, "~> 1.4.2"},
+      {:timeless_traces, "~> 1.3.2"},
 
       # Dashboard pages
-      {:timeless_metrics_dashboard,
-       github: "awksedgreep/timeless_metrics_dashboard", tag: "v0.4.1"},
-      {:timeless_logs_dashboard, github: "awksedgreep/timeless_logs_dashboard", tag: "v0.7.2"},
-      {:timeless_traces_dashboard,
-       github: "awksedgreep/timeless_traces_dashboard", tag: "v0.3.2"},
+      {:timeless_metrics_dashboard, "~> 0.4.3"},
+      {:timeless_logs_dashboard, "~> 0.7.3"},
+      {:timeless_traces_dashboard, "~> 0.3.3"},
 
       # Phoenix / LiveDashboard
       {:phoenix_live_dashboard, "~> 0.8"},
@@ -68,7 +66,8 @@ defmodule TimelessPhoenix.MixProject do
       {:opentelemetry_bandit, "~> 0.3.0"},
 
       # Installer (optional — only used by mix igniter.install)
-      {:igniter, "~> 0.6", optional: true}
+      {:igniter, "~> 0.6", optional: true},
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false}
     ]
   end
 end
