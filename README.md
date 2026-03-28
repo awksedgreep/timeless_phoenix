@@ -45,14 +45,15 @@ One dep, one child_spec, one router macro — you get:
 Add the dependency to `mix.exs`:
 
 ```elixir
-{:timeless_phoenix, "~> 1.5"}
+{:timeless_phoenix, "~> 1.5"},
+{:igniter, "~> 0.6", only: [:dev, :test], runtime: false}
 ```
 
 Then run:
 
 ```bash
 mix deps.get
-mix timeless_phoenix.install
+mix igniter.install timeless_phoenix
 ```
 
 This automatically:
@@ -69,7 +70,7 @@ By default, metrics, logs, and traces are all persisted to disk under
 CI or ephemeral demo environments:
 
 ```bash
-mix timeless_phoenix.install --storage memory
+mix igniter.install timeless_phoenix --storage memory
 ```
 
 ### HTTP Endpoints
@@ -78,19 +79,19 @@ To expose HTTP ingest/query endpoints for external tooling (Grafana, curl, etc.)
 use the `--http` flag to enable all three:
 
 ```bash
-mix timeless_phoenix.install --http
+mix igniter.install timeless_phoenix --http
 ```
 
 Or enable them individually:
 
 ```bash
-mix timeless_phoenix.install --http-metrics --http-logs
+mix igniter.install timeless_phoenix --http-metrics --http-logs
 ```
 
 Default ports are 8428 (metrics), 9428 (logs), and 10428 (traces). Override with:
 
 ```bash
-mix timeless_phoenix.install --http --metrics-port 9090 --logs-port 3100 --traces-port 4318
+mix igniter.install timeless_phoenix --http --metrics-port 9090 --logs-port 3100 --traces-port 4318
 ```
 
 | Flag | Description |

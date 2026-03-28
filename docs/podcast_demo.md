@@ -136,7 +136,7 @@ du -sh priv/observability/
 ## Pre-flight Checklist
 
 - [ ] All packages published to Hex (or clean GitHub dep story ready)
-- [x] `mix timeless_phoenix.install` works against a clean `phx.new` project
+- [x] `mix igniter.install timeless_phoenix` works against a clean `phx.new` project
 - [x] Remove default LiveDashboard route after install (live_session conflict)
 - [x] `mix timeless_phoenix.gen_demo` generates DemoTraffic + Task.Supervisor correctly
 - [ ] Traces tab populates with OTel Phoenix/Bandit instrumentation (if using Act 5)
