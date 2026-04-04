@@ -13,7 +13,15 @@ This creates two things:
 1. **`lib/<app>/demo_traffic.ex`** -- a GenServer that simulates application activity
 2. **Supervision tree entries** -- a `Task.Supervisor` and the `DemoTraffic` module added to your application
 
-The generator requires [Igniter](https://hex.pm/packages/igniter). If Igniter isn't installed, you'll see an error with instructions.
+The generator requires [Igniter](https://hexdocs.pm/igniter/readme.html). The lightest setup is the
+Igniter archive:
+
+```bash
+mix archive.install hex igniter_new
+```
+
+You can also add `{:igniter, "~> 0.6", only: [:dev, :test], runtime: false}` to `mix.exs` if you
+prefer a project-local dependency, then run `mix deps.get`.
 
 ## What it generates
 

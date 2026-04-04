@@ -11,9 +11,27 @@ TimelessPhoenix adds persistent metrics, logs, and traces to your Phoenix app wi
 
 ## Installation with Igniter (recommended)
 
-If you have [Igniter](https://hex.pm/packages/igniter) installed:
+Per the [Igniter docs](https://hexdocs.pm/igniter/readme.html), the simplest way to use
+`mix igniter.install` in an existing Phoenix app is the archive:
 
 ```bash
+mix archive.install hex igniter_new
+mix igniter.install timeless_phoenix
+```
+
+That command adds `timeless_phoenix` to your dependencies, fetches deps, and runs the
+`timeless_phoenix.install` task.
+
+If you prefer project-local Igniter instead of the archive, add this to `mix.exs`:
+
+```elixir
+{:igniter, "~> 0.6", only: [:dev, :test], runtime: false}
+```
+
+Then run:
+
+```bash
+mix deps.get
 mix igniter.install timeless_phoenix
 ```
 
@@ -23,7 +41,8 @@ This automatically:
 2. Configures OpenTelemetry to export spans to TimelessTraces
 3. Adds `import TimelessPhoenix.Router` to your Phoenix router
 4. Adds `timeless_phoenix_dashboard "/dashboard"` to your browser scope
-5. Updates `.formatter.exs`
+5. Removes the default `live_dashboard` route (avoids live_session conflict)
+6. Updates `.formatter.exs`
 
 By default, the installer configures disk-backed metrics, logs, and traces:
 
@@ -41,11 +60,10 @@ Memory mode stores logs and traces in memory only (lost on restart). Metrics are
 
 ## Manual installation
 
-Add the dependency to `mix.exs`:
+If you don't want to use Igniter, add the dependency to `mix.exs`:
 
 ```elixir
-{:timeless_phoenix, "~> 1.5"},
-{:igniter, "~> 0.6", only: [:dev, :test], runtime: false}
+{:timeless_phoenix, "~> 1.5"}
 ```
 
 Add to your supervision tree (`lib/my_app/application.ex`):

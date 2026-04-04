@@ -42,10 +42,20 @@ One dep, one child_spec, one router macro — you get:
 
 ### With Igniter (recommended)
 
-Add the dependency to `mix.exs`:
+Per the [Igniter docs](https://hexdocs.pm/igniter/readme.html), the simplest end-user flow is to
+install the Igniter archive if you only want `mix igniter.install`:
+
+```bash
+mix archive.install hex igniter_new
+mix igniter.install timeless_phoenix
+```
+
+`mix igniter.install timeless_phoenix` adds the dependency to `mix.exs`, fetches dependencies, and
+runs `timeless_phoenix.install`.
+
+If you prefer to keep Igniter in your project instead of using the archive, add it as a dev/test dep:
 
 ```elixir
-{:timeless_phoenix, "~> 1.5"},
 {:igniter, "~> 0.6", only: [:dev, :test], runtime: false}
 ```
 
@@ -106,7 +116,7 @@ mix igniter.install timeless_phoenix --http --metrics-port 9090 --logs-port 3100
 
 ### Manual
 
-Add the dependency to `mix.exs`:
+If you don't want to use Igniter, add the dependency to `mix.exs`:
 
 ```elixir
 {:timeless_phoenix, "~> 1.5"}

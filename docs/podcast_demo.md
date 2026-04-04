@@ -40,14 +40,14 @@ mix igniter.install timeless_phoenix
 What Igniter does automatically (show the diff or narrate):
 
 - Adds `{:timeless_phoenix, "~> 0.x"}` to `mix.exs` deps
+- Fetches dependencies
 - Adds `{TimelessPhoenix, data_dir: "priv/observability"}` to your supervision tree in `application.ex`
 - Configures OpenTelemetry to export spans to TimelessTraces in `config.exs`
 - Adds `import TimelessPhoenix.Router` to your router
 - Adds `timeless_phoenix_dashboard "/dashboard"` inside your browser scope
 - Updates `.formatter.exs` with `import_deps: [:timeless_phoenix]`
-- Prints a notice to remove the default `/dev/dashboard` route (avoids live_session conflict)
 
-**Important:** Remove the default LiveDashboard route from the router (the `if Application.compile_env(:your_app, :dev_routes)` block) to avoid a live_session conflict.
+**Important:** The installer removes the default `live_dashboard` route to avoid a live session conflict. If your router uses a non-standard setup, verify that the old route is gone.
 
 **Talking point:** "One command. No config files. No YAML. No docker-compose."
 
@@ -92,19 +92,11 @@ Open `http://localhost:4000/dashboard` — LiveDashboard now has three observabi
 
 To also capture spans from real Phoenix HTTP requests (not just demo traffic), add OTel instrumentation:
 
-```elixir
-# mix.exs — add these deps
-{:opentelemetry_phoenix, "~> 2.0"},
-{:opentelemetry_bandit, "~> 0.2"}
-```
+No extra setup is required here. `timeless_phoenix` already depends on `:opentelemetry_phoenix`
+and `:opentelemetry_bandit`, and the installer configures the exporter for you.
 
-```elixir
-# application.ex — in start/2, before supervisor
-OpentelemetryPhoenix.setup()
-OpentelemetryBandit.setup()
-```
-
-Restart, hit a few pages, then show the new spans in the Traces tab alongside the demo traffic spans.
+Restart, hit a few pages, then show the real Phoenix request spans in the Traces tab alongside the
+demo traffic spans.
 
 - **Talking point:** "One line of setup and every real HTTP request gets traced end-to-end."
 
@@ -137,7 +129,7 @@ du -sh priv/observability/
 
 - [ ] All packages published to Hex (or clean GitHub dep story ready)
 - [x] `mix igniter.install timeless_phoenix` works against a clean `phx.new` project
-- [x] Remove default LiveDashboard route after install (live_session conflict)
+- [x] Installer removes default LiveDashboard route after install
 - [x] `mix timeless_phoenix.gen_demo` generates DemoTraffic + Task.Supervisor correctly
-- [ ] Traces tab populates with OTel Phoenix/Bandit instrumentation (if using Act 5)
+- [ ] Traces tab populates with OTel Phoenix/Bandit instrumentation
 - [x] Data directory creates cleanly under `priv/observability/`
