@@ -1,7 +1,7 @@
 defmodule TimelessPhoenix.MixProject do
   use Mix.Project
 
-  @version "1.5.11"
+  @version "1.5.12"
 
   def project do
     [
@@ -52,8 +52,8 @@ defmodule TimelessPhoenix.MixProject do
 
       # Dashboard pages
       {:timeless_metrics_dashboard, "~> 0.4.3"},
-      {:timeless_logs_dashboard, "~> 0.7.3"},
-      {:timeless_traces_dashboard, "~> 0.3.3"},
+      {:timeless_logs_dashboard, "~> 0.7"},
+      {:timeless_traces_dashboard, "~> 0.3"},
 
       # Phoenix / LiveDashboard
       {:phoenix_live_dashboard, "~> 0.8"},
