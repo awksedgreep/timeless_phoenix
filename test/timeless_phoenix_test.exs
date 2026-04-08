@@ -1,6 +1,8 @@
 defmodule TimelessPhoenixTest do
   use ExUnit.Case
 
+  alias TimelessPhoenix.Identity
+
   test "child_spec returns supervisor spec with default name" do
     spec = TimelessPhoenix.child_spec(data_dir: "/tmp/test")
 
@@ -46,5 +48,41 @@ defmodule TimelessPhoenixTest do
 
   test "DefaultMetrics.metrics/0 delegates to all/0" do
     assert TimelessPhoenix.DefaultMetrics.metrics() == TimelessPhoenix.DefaultMetrics.all()
+  end
+
+  test "identity merges missing host and service into keyword resource config" do
+    resource = [service: [name: "existing-service"]]
+
+    merged =
+      Identity.merge_resource(resource, %{service_name: "new-service", host_name: "web-01"})
+
+    assert Keyword.get(merged, :service)[:name] == "existing-service"
+    assert Keyword.get(merged, :host)[:name] == "web-01"
+  end
+
+  test "identity merges missing host and service into map resource config" do
+    resource = %{service: %{name: "existing-service"}}
+
+    merged =
+      Identity.merge_resource(resource, %{service_name: "new-service", host_name: "web-01"})
+
+    assert get_in(merged, [:service, :name]) == "existing-service"
+    assert get_in(merged, [:host, :name]) == "web-01"
+  end
+
+  test "identity logger metadata includes standard and alias keys" do
+    Application.put_env(:opentelemetry, :resource,
+      service: [name: "timeless-ui"],
+      host: [name: "vpn"]
+    )
+
+    metadata = Identity.logger_metadata()
+
+    assert metadata[:service] == "timeless-ui"
+    assert metadata[:host] == "vpn"
+    assert metadata[:"service.name"] == "timeless-ui"
+    assert metadata[:"host.name"] == "vpn"
+  after
+    Application.delete_env(:opentelemetry, :resource)
   end
 end

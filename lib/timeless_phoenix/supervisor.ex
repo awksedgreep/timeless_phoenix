@@ -71,6 +71,8 @@ defmodule TimelessPhoenix.Supervisor do
       Application.put_env(:timeless_traces, key, val)
     end
 
+    TimelessPhoenix.Identity.ensure_opentelemetry_resource()
+
     # Configure OpenTelemetry to export to TimelessTraces
     Application.put_env(:opentelemetry, :traces_exporter, {TimelessTraces.Exporter, []})
 

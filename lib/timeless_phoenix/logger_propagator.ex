@@ -30,11 +30,15 @@ defmodule TimelessPhoenix.LoggerPropagator do
         :ok
 
       span_ctx when is_tuple(span_ctx) ->
+        OpenTelemetry.Tracer.set_attributes(TimelessPhoenix.Identity.span_attributes())
+
         trace_id = OpenTelemetry.Span.hex_trace_id(span_ctx)
         span_id = OpenTelemetry.Span.hex_span_id(span_ctx)
 
         if is_binary(trace_id) and trace_id != "" do
-          Logger.metadata(trace_id: trace_id, span_id: span_id)
+          Logger.metadata(
+            [trace_id: trace_id, span_id: span_id] ++ TimelessPhoenix.Identity.logger_metadata()
+          )
         end
 
       _ ->

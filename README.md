@@ -27,6 +27,22 @@ One dep, one child_spec, one router macro — you get:
 - **Traces** — TimelessTraces stores OpenTelemetry spans
 - **Dashboard** — All three as LiveDashboard pages, plus built-in charts with history
 
+## Identity Conventions
+
+TimelessPhoenix now enriches Phoenix-originated logs and spans with standard
+service and host identity fields so they line up with data from other
+OpenTelemetry producers.
+
+- Logs include canonical keys `service.name` and `host.name`
+- Logs also include convenience aliases `service` and `host`
+- Request-scoped logs still include `trace_id` and `span_id`
+- Phoenix request spans are tagged with `service.name` and `host.name`
+- Existing `config :opentelemetry, :resource` values are preserved; TimelessPhoenix only fills in missing identity fields
+
+Identity resolution prefers existing OpenTelemetry resource config first, then
+falls back to environment/runtime values such as `OTEL_SERVICE_NAME`,
+`HOSTNAME`, release name, node name, and `:inet.gethostname/0`.
+
 ## Documentation
 
 - [Getting Started](docs/getting_started.md)
