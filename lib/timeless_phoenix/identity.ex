@@ -132,13 +132,20 @@ defmodule TimelessPhoenix.Identity do
   end
 
   defp get_nested_value([segment | rest], resource) when is_list(resource) do
-    case Keyword.get(resource, String.to_atom(segment)) || Keyword.get(resource, segment) do
+    case Keyword.get(resource, String.to_atom(segment)) || list_get(resource, segment) do
       nil -> nil
       value -> get_nested_value(rest, value)
     end
   end
 
   defp get_nested_value(_segments, _resource), do: nil
+
+  defp list_get(list, key) do
+    case List.keyfind(list, key, 0) do
+      {^key, value} -> value
+      _ -> nil
+    end
+  end
 
   defp maybe_put_nested(resource, [parent, child], value) do
     case get_in(resource, [Access.key(parent, %{}), Access.key(child)]) do

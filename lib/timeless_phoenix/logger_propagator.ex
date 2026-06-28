@@ -9,8 +9,6 @@ defmodule TimelessPhoenix.LoggerPropagator do
   enabling cross-signal linking between logs and traces.
   """
 
-  require Logger
-
   @handler_id "timeless-phoenix-logger-propagator"
 
   def attach do
