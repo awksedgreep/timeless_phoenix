@@ -1,7 +1,7 @@
 defmodule TimelessPhoenix.MixProject do
   use Mix.Project
 
-  @version "1.5.17"
+  @version "1.5.18"
 
   def project do
     [
