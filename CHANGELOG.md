@@ -3,6 +3,16 @@
 This changelog starts at 2.0.0; earlier releases are recorded by git
 tags (through v1.5.8; 1.5.9–1.5.18 shipped untagged).
 
+## 2.0.1 (2026-08-09)
+
+**`TimelessPhoenix.doctor/1`** — post-upgrade verification for a live
+node (run from `bin/my_app remote`): confirms each signal is configured
+AND running on the libSQL engine, the extension capability handshake
+holds (version + data ABI), legacy stores were converted with rollback
+material retained (and errors loudly if a legacy store exists without a
+conversion marker), and reports data presence. Prints a report and
+returns `{verdict, report}` with `:ok` | `:warn` | `:error`.
+
 ## 2.0.0 (2026-08-09)
 
 **The libSQL release.** All three embedded signals now run on in-process

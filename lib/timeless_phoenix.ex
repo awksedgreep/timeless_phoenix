@@ -81,6 +81,16 @@ defmodule TimelessPhoenix do
   @doc false
   def store_name(name), do: :"tp_#{name}_timeless"
 
+  @doc """
+  Verify the 2.0 libSQL engines on a live node: engine flags, extension
+  handshake, legacy-store conversion status, and data presence for all
+  three signals. Prints a report; returns `{verdict, report}` with
+  verdict `:ok` | `:warn` | `:error`.
+
+      TimelessPhoenix.doctor()
+  """
+  defdelegate doctor(name \\ :default), to: TimelessPhoenix.Doctor, as: :run
+
   @doc false
   def reporter_name(name), do: :"tp_#{name}_reporter"
 end
