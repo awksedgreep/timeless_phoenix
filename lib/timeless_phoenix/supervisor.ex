@@ -28,53 +28,68 @@ defmodule TimelessPhoenix.Supervisor do
     name = Keyword.get(opts, :name, :default)
     data_dir = Keyword.fetch!(opts, :data_dir)
 
+    # 2.0: the embedded Elixir engines no longer serve HTTP — the Rust
+    # services own the HTTP surface, and both modes share one on-disk
+    # format, so the services can take over the same databases.
+    if Keyword.get(opts, :http, []) != [] do
+      raise ArgumentError,
+            "timeless_phoenix 2.0 no longer serves signal HTTP APIs from the embedded " <>
+              "engines. Remove the :http option and run the timeless-metrics-api / " <>
+              "timeless-logs-api / timeless-traces-api services from the timeless-libsql " <>
+              "release bundle against the same data directories instead — embedded and " <>
+              "Rust modes share one storage format. See the production guide."
+    end
+
     metrics_dir = Path.join(data_dir, "metrics")
     logs_dir = Path.join(data_dir, "logs")
     spans_dir = Path.join(data_dir, "spans")
 
-    File.mkdir_p!(metrics_dir)
-    File.mkdir_p!(logs_dir)
-    File.mkdir_p!(spans_dir)
+    # The metrics package ships the timeless-libsql extension with its
+    # precompiled natives; logs and traces load the same .so.
+    shared_extension =
+      Application.app_dir(:timeless_metrics, "priv/native/timeless_sqlite_ext.so")
 
-    # HTTP endpoint config
-    http = Keyword.get(opts, :http, [])
-
-    # Configure TimelessLogs app env before starting
+    # Configure TimelessLogs app env before starting — unless the host
+    # declared external ownership, which we must never clobber.
     log_overrides = Keyword.get(opts, :timeless_logs, [])
-    merged_logs = Keyword.merge(@embedded_log_defaults, log_overrides)
+    logs_embedded? = not external?(:timeless_logs, log_overrides)
 
-    log_env = [{:data_dir, logs_dir} | merged_logs]
+    if logs_embedded? do
+      File.mkdir_p!(logs_dir)
 
-    log_env =
-      case Keyword.fetch(http, :logs) do
-        {:ok, port} -> [{:http, [port: port]} | log_env]
-        :error -> log_env
+      log_env =
+        @embedded_log_defaults
+        |> Keyword.merge(engine: :libsql, extension_path: shared_extension)
+        |> Keyword.merge(log_overrides)
+
+      for {key, val} <- [{:data_dir, logs_dir} | log_env] do
+        Application.put_env(:timeless_logs, key, val)
       end
-
-    for {key, val} <- log_env do
-      Application.put_env(:timeless_logs, key, val)
     end
 
-    # Configure TimelessTraces app env before starting
+    # Configure TimelessTraces app env before starting — same rule.
     trace_overrides = Keyword.get(opts, :timeless_traces, [])
-    merged_traces = Keyword.merge(@embedded_trace_defaults, trace_overrides)
+    traces_embedded? = not external?(:timeless_traces, trace_overrides)
 
-    trace_env = [{:data_dir, spans_dir} | merged_traces]
+    if traces_embedded? do
+      File.mkdir_p!(spans_dir)
 
-    trace_env =
-      case Keyword.fetch(http, :traces) do
-        {:ok, port} -> [{:http, [port: port]} | trace_env]
-        :error -> trace_env
+      trace_env =
+        @embedded_trace_defaults
+        |> Keyword.merge(engine: :libsql, extension_path: shared_extension)
+        |> Keyword.merge(trace_overrides)
+
+      for {key, val} <- [{:data_dir, spans_dir} | trace_env] do
+        Application.put_env(:timeless_traces, key, val)
       end
-
-    for {key, val} <- trace_env do
-      Application.put_env(:timeless_traces, key, val)
     end
 
     TimelessPhoenix.Identity.ensure_opentelemetry_resource()
 
-    # Configure OpenTelemetry to export to TimelessTraces
-    Application.put_env(:opentelemetry, :traces_exporter, {TimelessTraces.Exporter, []})
+    # Export OTel spans into the embedded traces store only when we own it.
+    if traces_embedded? do
+      Application.put_env(:opentelemetry, :traces_exporter, {TimelessTraces.Exporter, []})
+    end
 
     # Attach OTel instrumentation for Phoenix and Bandit
     OpentelemetryBandit.setup()
@@ -83,21 +98,26 @@ defmodule TimelessPhoenix.Supervisor do
     # Propagate OTel trace context into Logger metadata so logs carry trace_id/span_id
     TimelessPhoenix.LoggerPropagator.attach()
 
-    # Timeless opts
+    # Timeless opts — no engine hardcode: metrics 6.4 defaults to the
+    # libSQL engine and auto-converts legacy rust_engine/ stores at
+    # startup (source retained for rollback; auto_migrate: false or
+    # engine: :rust via the :timeless keyword to override).
     store = TimelessPhoenix.store_name(name)
     reporter_name = TimelessPhoenix.reporter_name(name)
     timeless_extra = Keyword.get(opts, :timeless, [])
+    metrics_embedded? = Keyword.get(timeless_extra, :owner, :embedded) != :external
+
+    if metrics_embedded?, do: File.mkdir_p!(metrics_dir)
 
     timeless_opts =
       [
         name: store,
         data_dir: metrics_dir,
-        engine: :rust,
         raw_retention_seconds: 7 * 86_400,
         daily_retention_seconds: 90 * 86_400,
         max_blocks: 50
       ]
-      |> Keyword.merge(timeless_extra)
+      |> Keyword.merge(Keyword.delete(timeless_extra, :owner))
 
     # Reporter opts
     metrics = Keyword.get_lazy(opts, :metrics, &TimelessPhoenix.DefaultMetrics.all/0)
@@ -108,29 +128,31 @@ defmodule TimelessPhoenix.Supervisor do
 
     # Optionally start the metrics HTTP endpoint
     children =
-      [
-        # Start TimelessMetrics (named instance)
-        {TimelessMetrics, timeless_opts}
-      ] ++
-        case Keyword.fetch(http, :metrics) do
-          {:ok, port} -> [{TimelessMetrics.HTTP, store: store, port: port}]
-          :error -> []
-        end ++
-        [
-          # Start TimelessLogs and TimelessTraces as OTP apps (singleton)
-          %{id: :timeless_logs_app, start: {__MODULE__, :ensure_app, [:timeless_logs]}},
-          %{id: :timeless_traces_app, start: {__MODULE__, :ensure_app, [:timeless_traces]}},
-
-          # Start the telemetry reporter
-          {TimelessMetricsDashboard.Reporter, reporter_opts}
-        ]
+      if(metrics_embedded?, do: [{TimelessMetrics, timeless_opts}], else: []) ++
+        if(logs_embedded?,
+          do: [%{id: :timeless_logs_app, start: {__MODULE__, :ensure_app, [:timeless_logs]}}],
+          else: []
+        ) ++
+        if(traces_embedded?,
+          do: [%{id: :timeless_traces_app, start: {__MODULE__, :ensure_app, [:timeless_traces]}}],
+          else: []
+        ) ++
+        if(metrics_embedded?, do: [{TimelessMetricsDashboard.Reporter, reporter_opts}], else: [])
 
     Supervisor.init(children, strategy: :rest_for_one)
   end
 
+  # A signal is externally owned when the host's app env OR the caller's
+  # overrides say so — TimelessPhoenix must never clobber or restart an
+  # external-owner signal into embedded mode.
+  defp external?(app, overrides) do
+    Keyword.get(overrides, :owner, Application.get_env(app, :owner, :embedded)) == :external
+  end
+
   @doc false
   def ensure_app(app) do
-    # The app may have been auto-started by OTP with default config before
+    # Only reached for EMBEDDED signals (external ones are never bounced):
+    # the app may have been auto-started by OTP with default config before
     # our Application.put_env calls above. Stop it first so it restarts
     # with the correct config.
     Application.stop(app)

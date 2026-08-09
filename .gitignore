@@ -4,7 +4,6 @@
 /priv/
 *.ez
 timeless_phoenix-*.tar
-mix.lock
 
 # Environment files
 .env

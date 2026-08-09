@@ -1,7 +1,7 @@
 defmodule TimelessPhoenix.MixProject do
   use Mix.Project
 
-  @version "1.5.18"
+  @version "2.0.0"
 
   def project do
     [
@@ -46,9 +46,9 @@ defmodule TimelessPhoenix.MixProject do
   defp deps do
     [
       # Storage engines (override: child dashboards also depend on these)
-      {:timeless_metrics, "~> 6.0"},
-      {:timeless_logs, "~> 1.4"},
-      {:timeless_traces, "~> 1.3"},
+      {:timeless_metrics, "~> 6.4"},
+      {:timeless_logs, "~> 1.7"},
+      {:timeless_traces, "~> 1.6"},
 
       # Dashboard pages
       {:timeless_metrics_dashboard, "~> 0.4"},
