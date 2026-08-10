@@ -98,10 +98,15 @@ defmodule TimelessPhoenix.Supervisor do
     # Propagate OTel trace context into Logger metadata so logs carry trace_id/span_id
     TimelessPhoenix.LoggerPropagator.attach()
 
-    # Timeless opts — no engine hardcode: metrics 6.4 defaults to the
-    # libSQL engine and auto-converts legacy rust_engine/ stores at
-    # startup (source retained for rollback; auto_migrate: false or
-    # engine: :rust via the :timeless keyword to override).
+    # Metrics declares its engine here for the same reason logs and traces do
+    # above, rather than inheriting timeless_metrics' default. Relying on the
+    # default meant this composition layer pinned two signals explicitly and let
+    # the third drift with its package, so a change to that default would have
+    # silently moved metrics — and only metrics — onto a different engine. The
+    # value matches what the default already resolves to, so nothing changes
+    # today; what changes is that all three now say so in one place.
+    # Override per-signal through the :timeless keyword (e.g. engine: :rust,
+    # or auto_migrate: false to keep a legacy store unconverted).
     store = TimelessPhoenix.store_name(name)
     reporter_name = TimelessPhoenix.reporter_name(name)
     timeless_extra = Keyword.get(opts, :timeless, [])
@@ -112,6 +117,7 @@ defmodule TimelessPhoenix.Supervisor do
     timeless_opts =
       [
         name: store,
+        engine: :libsql,
         data_dir: metrics_dir,
         raw_retention_seconds: 7 * 86_400,
         daily_retention_seconds: 90 * 86_400,
