@@ -38,7 +38,12 @@ defmodule TimelessPhoenix.DoctorTest do
     assert report.logs.verdict == :ok
     assert report.traces.verdict == :ok
 
-    assert Enum.any?(report.metrics.checks, fn {_, msg} -> msg =~ "extension 0.5" end)
+    # Version-agnostic: the bundled extension advances with the engine deps;
+    # what matters is that the doctor reports one and its data ABI.
+    assert Enum.any?(report.metrics.checks, fn {_, msg} ->
+             msg =~ ~r/extension \d+\.\d+\.\d+, data ABI \d+/
+           end)
+
     assert Enum.any?(report.metrics.checks, fn {_, msg} -> msg =~ "no legacy" end)
 
     Supervisor.stop(sup)
