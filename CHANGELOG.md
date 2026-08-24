@@ -3,6 +3,23 @@
 This changelog starts at 2.0.0; earlier releases are recorded by git
 tags (through v1.5.8; 1.5.9–1.5.18 shipped untagged).
 
+## 2.0.3 (2026-08-24)
+
+**Requires `timeless_metrics >= 6.6.6`.** Every `timeless_metrics` release
+from 6.2.3 through 6.6.5 carries a release-migration path that can hang and
+silently lose data on upgrade: cold validation resolved one
+`timeless_series` probe per series with predicates that cannot be pushed
+down, making validation O(series²) and unbounded on a high-cardinality
+store, and the half-built candidate ran the production `:compact` and
+`:retention` timers, so any copy taking longer than an hour had raw points
+older than the retention window pruned out of it mid-migration. A real
+1,000,997-series store lost 2,419,903 points that way.
+
+The previous constraint (`~> 6.4`) permitted the entire affected range.
+Upgrade directly to 6.6.6; the fixed migration runs from the version you
+upgrade *to*, so landing on 6.6.6 is the fix. Those versions are retired on
+Hex.
+
 ## 2.0.1 (2026-08-09)
 
 **`TimelessPhoenix.doctor/1`** — post-upgrade verification for a live
