@@ -21,7 +21,8 @@ defmodule TimelessPhoenix.MixProject do
 
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      included_applications: [:timeless_logs, :timeless_traces]
     ]
   end
 

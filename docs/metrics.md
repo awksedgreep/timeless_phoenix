@@ -34,14 +34,14 @@ Internal TSDB telemetry:
 ### TimelessLogs metrics
 
 Log engine telemetry:
-- `timeless_logs.flush.stop.entry_count` (summary + counter) -- entries per flush
+- `timeless_logs.flush.stop.entry_count` (summary) -- entries per flush
 - `timeless_logs.flush.stop.duration` (summary, ms) -- flush duration
 - `timeless_logs.retention.stop.duration` (summary, ms) -- retention cleanup duration
 
 ### TimelessTraces metrics
 
 Trace engine telemetry:
-- `timeless_traces.flush.stop.entry_count` (summary + counter) -- spans per flush
+- `timeless_traces.flush.stop.entry_count` (summary) -- spans per flush
 - `timeless_traces.flush.stop.duration` (summary, ms) -- flush duration
 - `timeless_traces.retention.stop.duration` (summary, ms) -- retention cleanup duration
 

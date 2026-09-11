@@ -18,6 +18,9 @@ defmodule TimelessPhoenix.DefaultMetrics do
 
   import Telemetry.Metrics
 
+  # Bump when the built-in list changes so hot upgrades cannot retain an old list.
+  @cache_version 1
+
   # Re-export TimelessMetricsDashboard.DefaultMetrics
   defdelegate vm_metrics, to: TimelessMetricsDashboard.DefaultMetrics
   defdelegate phoenix_metrics, to: TimelessMetricsDashboard.DefaultMetrics
@@ -32,7 +35,6 @@ defmodule TimelessPhoenix.DefaultMetrics do
     [
       summary("timeless_logs.flush.stop.entry_count"),
       summary("timeless_logs.flush.stop.duration", unit: {:native, :millisecond}),
-      counter("timeless_logs.flush.stop.entry_count"),
       summary("timeless_logs.retention.stop.duration", unit: {:native, :millisecond})
     ]
   end
@@ -44,7 +46,6 @@ defmodule TimelessPhoenix.DefaultMetrics do
     [
       summary("timeless_traces.flush.stop.entry_count"),
       summary("timeless_traces.flush.stop.duration", unit: {:native, :millisecond}),
-      counter("timeless_traces.flush.stop.entry_count"),
       summary("timeless_traces.retention.stop.duration", unit: {:native, :millisecond})
     ]
   end
@@ -55,12 +56,24 @@ defmodule TimelessPhoenix.DefaultMetrics do
   This is the default when no `:metrics` option is passed to `TimelessPhoenix`.
   """
   def all do
-    vm_metrics() ++
-      phoenix_metrics() ++
-      live_view_metrics() ++
-      timeless_metrics() ++
-      log_stream_metrics() ++
-      span_stream_metrics()
+    cache_key = {__MODULE__, :all, @cache_version}
+
+    case :persistent_term.get(cache_key, nil) do
+      nil ->
+        metrics =
+          vm_metrics() ++
+            phoenix_metrics() ++
+            live_view_metrics() ++
+            timeless_metrics() ++
+            log_stream_metrics() ++
+            span_stream_metrics()
+
+        :persistent_term.put(cache_key, metrics)
+        metrics
+
+      metrics ->
+        metrics
+    end
   end
 
   # LiveDashboard calls metrics/0 on the metrics module

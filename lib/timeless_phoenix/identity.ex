@@ -4,19 +4,25 @@ defmodule TimelessPhoenix.Identity do
   @spec logger_metadata() :: keyword()
   def logger_metadata do
     identity = resolve()
+    logger_metadata(identity)
+  end
 
+  @spec logger_metadata(%{host_name: String.t(), service_name: String.t()}) :: keyword()
+  def logger_metadata(identity) do
     [
       {:"host.name", identity.host_name},
-      {:"service.name", identity.service_name},
-      host: identity.host_name,
-      service: identity.service_name
+      {:"service.name", identity.service_name}
     ]
   end
 
   @spec span_attributes() :: map()
   def span_attributes do
     identity = resolve()
+    span_attributes(identity)
+  end
 
+  @spec span_attributes(%{host_name: String.t(), service_name: String.t()}) :: map()
+  def span_attributes(identity) do
     %{
       "host.name" => identity.host_name,
       "service.name" => identity.service_name
@@ -103,19 +109,15 @@ defmodule TimelessPhoenix.Identity do
   end
 
   defp extract_resource_value(resource, path) when is_list(resource) do
-    resource
-    |> Map.new()
-    |> do_extract_resource_value(path)
+    do_extract_resource_value(resource, path)
   end
 
   defp extract_resource_value(_, _path), do: nil
 
   defp do_extract_resource_value(resource, [dotted_key]) do
-    case Map.get(resource, dotted_key) do
+    case get_value(resource, dotted_key) do
       nil ->
-        dotted_key
-        |> String.split(".")
-        |> get_nested_value(resource)
+        dotted_key |> resource_path() |> get_nested_value(resource)
 
       value ->
         value
@@ -124,15 +126,9 @@ defmodule TimelessPhoenix.Identity do
 
   defp get_nested_value([], value), do: value
 
-  defp get_nested_value([segment | rest], resource) when is_map(resource) do
-    case Map.get(resource, String.to_atom(segment)) || Map.get(resource, segment) do
-      nil -> nil
-      value -> get_nested_value(rest, value)
-    end
-  end
-
-  defp get_nested_value([segment | rest], resource) when is_list(resource) do
-    case Keyword.get(resource, String.to_atom(segment)) || list_get(resource, segment) do
+  defp get_nested_value([{atom_key, string_key} | rest], resource)
+       when is_map(resource) or is_list(resource) do
+    case get_value(resource, atom_key) || get_value(resource, string_key) do
       nil -> nil
       value -> get_nested_value(rest, value)
     end
@@ -140,7 +136,13 @@ defmodule TimelessPhoenix.Identity do
 
   defp get_nested_value(_segments, _resource), do: nil
 
-  defp list_get(list, key) do
+  defp resource_path("service.name"), do: [{:service, "service"}, {:name, "name"}]
+  defp resource_path("host.name"), do: [{:host, "host"}, {:name, "name"}]
+  defp resource_path(_key), do: []
+
+  defp get_value(map, key) when is_map(map), do: Map.get(map, key)
+
+  defp get_value(list, key) when is_list(list) do
     case List.keyfind(list, key, 0) do
       {^key, value} -> value
       _ -> nil

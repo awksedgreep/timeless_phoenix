@@ -16,7 +16,8 @@ defmodule TimelessPhoenix do
   ## Child Spec Options
 
     * `:data_dir` (required) — base directory; creates `metrics/`, `logs/`, `spans/` subdirs
-    * `:name` — instance name for process naming (default: `:default`)
+    * `:name` — atom used for metrics/process naming (default: `:default`);
+      embedded logs and traces are node-wide singletons
     * `:metrics` — `Telemetry.Metrics` list for reporter (default: `TimelessPhoenix.DefaultMetrics.all()`)
     * `:timeless` — extra opts forwarded to TimelessMetrics
     * `:timeless_logs` — application env overrides for TimelessLogs
@@ -29,6 +30,7 @@ defmodule TimelessPhoenix do
   """
   def child_spec(opts) do
     name = Keyword.get(opts, :name, :default)
+    validate_name!(name)
 
     %{
       id: {__MODULE__, name},
@@ -53,7 +55,7 @@ defmodule TimelessPhoenix do
 
       metrics_history: {TimelessPhoenix, :metrics_history, [:my_instance]}
   """
-  def metrics_history(metric, name \\ :default, opts \\ []) do
+  def metrics_history(metric, name \\ :default, opts \\ []) when is_atom(name) do
     store = store_name(name)
     TimelessMetricsDashboard.metrics_history(metric, store, opts)
   end
@@ -68,6 +70,7 @@ defmodule TimelessPhoenix do
   """
   def dashboard_pages(opts \\ []) do
     name = Keyword.get(opts, :name, :default)
+    validate_name!(name)
     download_path = Keyword.get(opts, :download_path, "/timeless/downloads")
     store = store_name(name)
 
@@ -79,18 +82,27 @@ defmodule TimelessPhoenix do
   end
 
   @doc false
-  def store_name(name), do: :"tp_#{name}_timeless"
+  def store_name(name) when is_atom(name), do: :"tp_#{name}_timeless"
 
   @doc """
   Verify the 2.0 libSQL engines on a live node: engine flags, extension
   handshake, legacy-store conversion status, and data presence for all
-  three signals. Prints a report; returns `{verdict, report}` with
+  three signals. Prints a report unless `quiet: true`; returns `{verdict, report}` with
   verdict `:ok` | `:warn` | `:error`.
 
       TimelessPhoenix.doctor()
+      TimelessPhoenix.doctor(:default, quiet: true)
   """
-  defdelegate doctor(name \\ :default), to: TimelessPhoenix.Doctor, as: :run
+  def doctor(name \\ :default, opts \\ []) when is_atom(name) and is_list(opts) do
+    TimelessPhoenix.Doctor.run(name, opts)
+  end
 
   @doc false
-  def reporter_name(name), do: :"tp_#{name}_reporter"
+  def reporter_name(name) when is_atom(name), do: :"tp_#{name}_reporter"
+
+  defp validate_name!(name) when is_atom(name), do: :ok
+
+  defp validate_name!(name) do
+    raise ArgumentError, ":name must be an atom, got: #{inspect(name)}"
+  end
 end

@@ -56,7 +56,9 @@ If you want ephemeral logs and traces for development or CI:
 mix igniter.install timeless_phoenix --storage memory
 ```
 
-Memory mode stores logs and traces in memory only (lost on restart). Metrics are still persisted to disk.
+Memory mode explicitly selects the deprecated Elixir log and trace engines and
+stores their data in memory only (lost on restart). Metrics are still persisted
+to disk; the libSQL engines are disk-backed.
 
 ## Manual installation
 

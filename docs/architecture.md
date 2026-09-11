@@ -5,20 +5,21 @@ TimelessPhoenix is an orchestration layer that starts and configures three indep
 ## Supervision tree
 
 ```
-TimelessPhoenix.Supervisor (:rest_for_one)
+TimelessPhoenix.Supervisor (:one_for_one)
 ├── TimelessMetrics (named instance)
 │   └── Per-series actor engine, SQLite index, Gorilla+Zstd compression
-├── TimelessLogs (OTP application)
+├── TimelessLogs application monitor
 │   └── Logger handler, Buffer, Writer, Index, Compactor, Retention
-├── TimelessTraces (OTP application)
+├── TimelessTraces application monitor
 │   └── OTel Exporter, Buffer, Writer, Index, Compactor, Retention
 └── TimelessMetricsDashboard.Reporter
     └── Telemetry event handler → writes metrics to TimelessMetrics
 ```
 
-The supervisor uses `:rest_for_one` strategy -- if TimelessMetrics fails, the Reporter (which depends on it) also restarts.
-
-TimelessLogs and TimelessTraces are started as OTP applications via `Application.ensure_all_started/1`. They return `:ignore` if already running, which allows them to be safely started from the supervisor without conflicting with their own application startup.
+The supervisor uses `:one_for_one` so a failure in one signal does not restart
+the independent stores. Permanent monitor children start the TimelessLogs and
+TimelessTraces OTP applications and re-establish them if their application
+supervisors exit.
 
 ## Data flow
 
@@ -67,9 +68,9 @@ When the supervisor starts:
 1. **Create directories**: `metrics/`, `logs/`, `spans/` under `data_dir`
 2. **Configure TimelessLogs**: Set application env (`:data_dir`, plus any overrides from `:timeless_logs` option)
 3. **Configure TimelessTraces**: Set application env (`:data_dir`, plus any overrides from `:timeless_traces` option)
-4. **Configure OpenTelemetry**: Set `traces_exporter` to `{TimelessTraces.Exporter, []}`
+4. **Configure OpenTelemetry**: Use `TimelessTraces.Exporter` when no exporter is configured; preserve and warn about any existing exporter
 5. **Attach OTel instrumentation**: `OpentelemetryBandit.setup()` and `OpentelemetryPhoenix.setup(adapter: :bandit)`
-6. **Start children**: TimelessMetrics → TimelessLogs app → TimelessTraces app → Reporter
+6. **Start children**: TimelessMetrics, monitored TimelessLogs/TimelessTraces applications, and Reporter under independent supervision
 
 ## Router integration
 

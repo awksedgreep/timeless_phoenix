@@ -33,7 +33,7 @@ defmodule TimelessPhoenix.Router do
   """
   defmacro timeless_phoenix_dashboard(path, opts \\ []) do
     quote bind_quoted: [path: path, opts: opts] do
-      import Phoenix.LiveDashboard.Router
+      require Phoenix.LiveDashboard.Router
 
       name = Keyword.get(opts, :name, :default)
       metrics_mod = Keyword.get(opts, :metrics, TimelessPhoenix.DefaultMetrics)
@@ -44,14 +44,17 @@ defmodule TimelessPhoenix.Router do
       forward(download_path, TimelessMetricsDashboard.DownloadPlug, store: store)
 
       dashboard_opts =
-        [
-          metrics: metrics_mod,
-          metrics_history: {TimelessPhoenix, :metrics_history, [name]},
-          additional_pages:
-            TimelessPhoenix.dashboard_pages(name: name, download_path: download_path)
-        ] ++ extra
+        Keyword.merge(
+          [
+            metrics: metrics_mod,
+            metrics_history: {TimelessPhoenix, :metrics_history, [name]},
+            additional_pages:
+              TimelessPhoenix.dashboard_pages(name: name, download_path: download_path)
+          ],
+          extra
+        )
 
-      live_dashboard(path, dashboard_opts)
+      Phoenix.LiveDashboard.Router.live_dashboard(path, dashboard_opts)
     end
   end
 end

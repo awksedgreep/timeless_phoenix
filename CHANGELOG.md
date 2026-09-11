@@ -3,6 +3,19 @@
 This changelog starts at 2.0.0; earlier releases are recorded by git
 tags (through v1.5.8; 1.5.9–1.5.18 shipped untagged).
 
+## Unreleased
+
+- Replace unmonitored log/trace application starters with permanent monitor
+  children and isolate signal failures under `:one_for_one` supervision.
+- Preserve existing OpenTelemetry exporters and make telemetry setup and trace
+  metadata cleanup idempotent.
+- Align installer output with the 2.x runtime, preserve custom dashboards and
+  exporter configuration, and make memory mode select the required legacy
+  engines explicitly.
+- Harden atom-only instance naming and embedded singleton ownership.
+- Parallelize and bound doctor checks, improve error reports, and add quiet mode.
+- Cache default metric definitions and remove duplicate flush series.
+
 ## 2.0.3 (2026-08-24)
 
 **Requires `timeless_metrics >= 6.6.6`.** Every `timeless_metrics` release

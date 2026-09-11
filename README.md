@@ -93,39 +93,19 @@ This automatically:
 
 By default, metrics, logs, and traces are all persisted to disk under
 `priv/observability`. If you want logs and traces to stay in memory only for
-CI or ephemeral demo environments:
+CI or ephemeral demo environments, the installer selects their deprecated
+Elixir engines explicitly (the libSQL engines are disk-backed):
 
 ```bash
 mix igniter.install timeless_phoenix --storage memory
 ```
 
-### HTTP Endpoints
+### HTTP endpoints
 
-To expose HTTP ingest/query endpoints for external tooling (Grafana, curl, etc.),
-use the `--http` flag to enable all three:
-
-```bash
-mix igniter.install timeless_phoenix --http
-```
-
-Or enable them individually:
-
-```bash
-mix igniter.install timeless_phoenix --http-metrics --http-logs
-```
-
-Default ports are 8428 (metrics), 9428 (logs), and 10428 (traces). Override with:
-
-```bash
-mix igniter.install timeless_phoenix --http --metrics-port 9090 --logs-port 3100 --traces-port 4318
-```
-
-| Flag | Description |
-|------|-------------|
-| `--http` | Enable all HTTP endpoints |
-| `--http-metrics` | Enable metrics HTTP endpoint |
-| `--http-logs` | Enable logs HTTP endpoint |
-| `--http-traces` | Enable traces HTTP endpoint |
+TimelessPhoenix 2.x does not serve signal HTTP APIs from its embedded engines.
+For Grafana, curl, or OTLP access, run the `timeless-metrics-api`,
+`timeless-logs-api`, and `timeless-traces-api` services from the
+`timeless-libsql` release bundle against the same data directories.
 | `--metrics-port` | Metrics port (default 8428) |
 | `--logs-port` | Logs port (default 9428) |
 | `--traces-port` | Traces port (default 10428) |
@@ -182,7 +162,7 @@ Add `:timeless_phoenix` to your `.formatter.exs` import_deps:
 | Option | Default | Description |
 |--------|---------|-------------|
 | `:data_dir` | **required** | Base directory; creates `metrics/`, `logs/`, `spans/` subdirs |
-| `:name` | `:default` | Instance name for process naming |
+| `:name` | `:default` | Atom used for metrics store and process naming; embedded logs/traces remain node-wide singletons |
 | `:metrics` | `DefaultMetrics.all()` | `Telemetry.Metrics` list for the reporter |
 | `:timeless` | `[]` | Extra opts forwarded to TimelessMetrics |
 | `:timeless_logs` | `[]` | Application env overrides for TimelessLogs |

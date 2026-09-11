@@ -66,7 +66,7 @@ if Code.ensure_loaded?(Igniter) do
         &simulate_cache_operation/0
       ]
 
-      count = Enum.random(3..6)
+      count = Enum.random(3..length(tasks))
 
       Enum.take_random(tasks, count)
       |> Enum.each(fn task ->
@@ -208,9 +208,13 @@ if Code.ensure_loaded?(Igniter) do
       task_sup_module = Module.concat(base_module, DemoTaskSupervisor)
       interval = igniter.args.options[:interval] || 2000
 
-      igniter
-      |> create_demo_traffic_module(demo_module, task_sup_module, otp_app, interval)
-      |> add_to_supervision_tree(demo_module, task_sup_module)
+      if interval > 0 do
+        igniter
+        |> create_demo_traffic_module(demo_module, task_sup_module, otp_app, interval)
+        |> add_to_supervision_tree(demo_module, task_sup_module)
+      else
+        Igniter.add_issue(igniter, "--interval must be greater than zero")
+      end
     end
 
     defp create_demo_traffic_module(igniter, demo_module, task_sup_module, otp_app, interval) do

@@ -70,7 +70,10 @@ defmodule TimelessPhoenixTest do
     assert get_in(merged, [:host, :name]) == "web-01"
   end
 
-  test "identity logger metadata includes standard and alias keys" do
+  test "identity logger metadata includes canonical OpenTelemetry keys once" do
+    previous = Application.fetch_env(:opentelemetry, :resource)
+    on_exit(fn -> restore_env(:opentelemetry, :resource, previous) end)
+
     Application.put_env(:opentelemetry, :resource,
       service: [name: "timeless-ui"],
       host: [name: "vpn"]
@@ -78,11 +81,46 @@ defmodule TimelessPhoenixTest do
 
     metadata = Identity.logger_metadata()
 
-    assert metadata[:service] == "timeless-ui"
-    assert metadata[:host] == "vpn"
     assert metadata[:"service.name"] == "timeless-ui"
     assert metadata[:"host.name"] == "vpn"
-  after
-    Application.delete_env(:opentelemetry, :resource)
+    refute Keyword.has_key?(metadata, :service)
+    refute Keyword.has_key?(metadata, :host)
   end
+
+  test "identity resolves keyword and string-keyed resources without creating atoms" do
+    previous = Application.fetch_env(:opentelemetry, :resource)
+    on_exit(fn -> restore_env(:opentelemetry, :resource, previous) end)
+
+    Application.put_env(:opentelemetry, :resource, [
+      {"service.name", "dotted"},
+      {:host, [name: "nested"]}
+    ])
+
+    assert Identity.resolve() == %{service_name: "dotted", host_name: "nested"}
+  end
+
+  test "default flush metrics do not duplicate summary and counter definitions" do
+    for metrics <- [
+          TimelessPhoenix.DefaultMetrics.log_stream_metrics(),
+          TimelessPhoenix.DefaultMetrics.span_stream_metrics()
+        ] do
+      names = Enum.map(metrics, & &1.name)
+      assert length(names) == length(Enum.uniq(names))
+    end
+  end
+
+  test "default metrics are memoized" do
+    :persistent_term.erase({TimelessPhoenix.DefaultMetrics, :all, 1})
+    metrics = TimelessPhoenix.DefaultMetrics.all()
+
+    assert :persistent_term.get({TimelessPhoenix.DefaultMetrics, :all, 1}) == metrics
+  end
+
+  test "public naming helpers reject non-atom instance names" do
+    assert_raise FunctionClauseError, fn -> apply(TimelessPhoenix, :store_name, ["unsafe"]) end
+    assert_raise FunctionClauseError, fn -> apply(TimelessPhoenix, :reporter_name, ["unsafe"]) end
+  end
+
+  defp restore_env(app, key, {:ok, value}), do: Application.put_env(app, key, value)
+  defp restore_env(app, key, :error), do: Application.delete_env(app, key)
 end

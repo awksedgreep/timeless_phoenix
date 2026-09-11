@@ -16,14 +16,8 @@ if Code.ensure_loaded?(Igniter) do
 
       * `--storage` — `disk` (default) or `memory`. Disk mode persists logs and
         traces with indexing and retention management. Memory mode keeps them
-        in RAM only and loses them on restart. Metrics are always persisted to disk.
-      * `--http` — Enable HTTP ingest/query endpoints for metrics, logs, and traces.
-      * `--http-metrics` — Enable only the metrics HTTP endpoint.
-      * `--http-logs` — Enable only the logs HTTP endpoint.
-      * `--http-traces` — Enable only the traces HTTP endpoint.
-      * `--metrics-port` — Port for the metrics HTTP endpoint (default 8428).
-      * `--logs-port` — Port for the logs HTTP endpoint (default 9428).
-      * `--traces-port` — Port for the traces HTTP endpoint (default 10428).
+        in RAM using the legacy Elixir engines and loses them on restart.
+        Metrics are always persisted to disk.
 
     ## What it does
 
@@ -42,16 +36,7 @@ if Code.ensure_loaded?(Igniter) do
     def info(_argv, _composing_task) do
       %Igniter.Mix.Task.Info{
         group: :timeless_phoenix,
-        schema: [
-          storage: :string,
-          http: :boolean,
-          http_metrics: :boolean,
-          http_logs: :boolean,
-          http_traces: :boolean,
-          metrics_port: :integer,
-          logs_port: :integer,
-          traces_port: :integer
-        ],
+        schema: [storage: :string],
         defaults: [storage: "disk"],
         required: [],
         positional: [],
@@ -66,63 +51,30 @@ if Code.ensure_loaded?(Igniter) do
     @impl Igniter.Mix.Task
     def igniter(igniter) do
       storage = igniter.args.options[:storage] || "disk"
-      http_opts = resolve_http_opts(igniter.args.options)
 
       igniter
-      |> add_to_supervision_tree(storage, http_opts)
+      |> add_to_supervision_tree(storage)
       |> configure_opentelemetry()
       |> setup_router()
       |> remove_default_live_dashboard()
       |> Igniter.Project.Formatter.import_dep(:timeless_phoenix)
     end
 
-    defp resolve_http_opts(options) do
-      all? = options[:http] || false
-
-      enabled =
-        []
-        |> then(fn acc ->
-          if all? || options[:http_metrics],
-            do: [{:metrics, options[:metrics_port] || 8428} | acc],
-            else: acc
-        end)
-        |> then(fn acc ->
-          if all? || options[:http_logs],
-            do: [{:logs, options[:logs_port] || 9428} | acc],
-            else: acc
-        end)
-        |> then(fn acc ->
-          if all? || options[:http_traces],
-            do: [{:traces, options[:traces_port] || 10428} | acc],
-            else: acc
-        end)
-        |> Enum.reverse()
-
-      enabled
-    end
-
     # Adds {TimelessPhoenix, ...} to the application's children list.
-    defp add_to_supervision_tree(igniter, storage, http_opts) do
+    defp add_to_supervision_tree(igniter, storage) do
       opts_parts = [~s(data_dir: "priv/observability")]
 
       opts_parts =
         case storage do
           "memory" ->
             opts_parts ++
-              ["timeless_logs: [storage: :memory]", "timeless_traces: [storage: :memory]"]
+              [
+                "timeless_logs: [engine: :elixir, storage: :memory]",
+                "timeless_traces: [engine: :elixir, storage: :memory]"
+              ]
 
           _ ->
             opts_parts
-        end
-
-      opts_parts =
-        case http_opts do
-          [] ->
-            opts_parts
-
-          entries ->
-            http_kw = Enum.map_join(entries, ", ", fn {k, v} -> "#{k}: #{v}" end)
-            opts_parts ++ ["http: [#{http_kw}]"]
         end
 
       opts_string = "[" <> Enum.join(opts_parts, ", ") <> "]"
@@ -166,7 +118,7 @@ if Code.ensure_loaded?(Igniter) do
     # Configures OpenTelemetry to export spans to TimelessTraces.
     # This must be in compile-time config so it takes effect before the OTel app starts.
     defp configure_opentelemetry(igniter) do
-      Igniter.Project.Config.configure(
+      Igniter.Project.Config.configure_new(
         igniter,
         "config.exs",
         :opentelemetry,
@@ -186,28 +138,46 @@ if Code.ensure_loaded?(Igniter) do
 
         {igniter, router} ->
           Igniter.Project.Module.find_and_update_module!(igniter, router, fn zipper ->
-            # Remove `live_dashboard` calls (our macro provides its own)
+            # Remove only Phoenix's generated default route. Applications may
+            # intentionally mount other dashboards at other paths.
             zipper =
               Igniter.Code.Common.remove_all_matches(zipper, fn z ->
-                Igniter.Code.Function.function_call?(z, :live_dashboard, :any)
+                default_live_dashboard_call?(z)
               end)
 
-            # Remove `import Phoenix.LiveDashboard.Router` (now unused)
             zipper =
-              Igniter.Code.Common.remove_all_matches(zipper, fn z ->
-                Igniter.Code.Function.function_call?(z, :import, 1) &&
-                  match?(
-                    {:ok,
-                     %Sourceror.Zipper{
-                       node: {:__aliases__, _, [:Phoenix, :LiveDashboard, :Router]}
-                     }},
-                    Igniter.Code.Function.move_to_nth_argument(z, 0)
-                  )
-              end)
+              if Igniter.Code.Common.find_all(zipper, &live_dashboard_call?/1) == [] do
+                Igniter.Code.Common.remove_all_matches(zipper, &live_dashboard_import?/1)
+              else
+                zipper
+              end
 
             {:ok, zipper}
           end)
       end
+    end
+
+    defp default_live_dashboard_call?(zipper) do
+      live_dashboard_call?(zipper) &&
+        case Igniter.Code.Function.move_to_nth_argument(zipper, 0) do
+          {:ok, argument} -> Igniter.Code.Common.nodes_equal?(argument, "/dashboard")
+          :error -> false
+        end
+    end
+
+    defp live_dashboard_call?(zipper) do
+      Igniter.Code.Function.function_call?(zipper, :live_dashboard, :any)
+    end
+
+    defp live_dashboard_import?(zipper) do
+      Igniter.Code.Function.function_call?(zipper, :import, 1) &&
+        match?(
+          {:ok,
+           %Sourceror.Zipper{
+             node: {:__aliases__, _, [:Phoenix, :LiveDashboard, :Router]}
+           }},
+          Igniter.Code.Function.move_to_nth_argument(zipper, 0)
+        )
     end
 
     # Adds `import TimelessPhoenix.Router` after `use Phoenix.Router` in the router module.

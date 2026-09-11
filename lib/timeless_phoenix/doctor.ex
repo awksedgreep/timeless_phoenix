@@ -14,14 +14,31 @@ defmodule TimelessPhoenix.Doctor do
   """
 
   @doc false
-  def run(name \\ :default) do
+  def run(name \\ :default, opts \\ []) do
     store = TimelessPhoenix.store_name(name)
+    timeout = Keyword.get(opts, :timeout, 5_000)
 
-    report = %{
-      metrics: check_metrics(store),
-      logs: check_logs(),
-      traces: check_traces()
-    }
+    report =
+      [
+        metrics: fn -> check_metrics(store) end,
+        logs: &check_logs/0,
+        traces: &check_traces/0
+      ]
+      |> Task.async_stream(
+        fn {signal, check} -> {signal, check.()} end,
+        max_concurrency: 3,
+        ordered: true,
+        timeout: timeout,
+        on_timeout: :kill_task
+      )
+      |> Enum.zip([:metrics, :logs, :traces])
+      |> Map.new(fn
+        {{:ok, {result_signal, result}}, signal} when result_signal == signal ->
+          {signal, result}
+
+        {{:exit, reason}, signal} ->
+          {signal, summarize([{:error, "check did not finish: #{inspect(reason)}"}])}
+      end)
 
     verdict =
       report
@@ -29,7 +46,7 @@ defmodule TimelessPhoenix.Doctor do
       |> Enum.map(& &1.verdict)
       |> Enum.max_by(&verdict_rank/1)
 
-    print(report, verdict)
+    unless Keyword.get(opts, :quiet, false), do: print(report, verdict)
     {verdict, report}
   end
 
@@ -40,22 +57,26 @@ defmodule TimelessPhoenix.Doctor do
   # -- metrics ---------------------------------------------------------------
 
   defp check_metrics(store) do
-    configured = :persistent_term.get({TimelessMetrics, store, :engine}, :missing)
-    data_dir = :persistent_term.get({TimelessMetrics, store, :data_dir}, nil)
+    if Application.get_env(:timeless_metrics, :owner, :embedded) == :external do
+      summarize([{:warn, "externally owned (Rust service) — verify via the service, not here"}])
+    else
+      configured = :persistent_term.get({TimelessMetrics, store, :engine}, :missing)
+      data_dir = :persistent_term.get({TimelessMetrics, store, :data_dir}, nil)
 
-    checks =
-      [engine_check(:metrics, configured)] ++
-        if configured == :libsql do
-          [
-            metrics_capability_check(store),
-            metrics_conversion_check(store, data_dir),
-            metrics_data_check(store)
-          ]
-        else
-          []
-        end
+      checks =
+        [engine_check(:metrics, configured)] ++
+          if configured == :libsql do
+            [
+              metrics_capability_check(store),
+              metrics_conversion_check(store, data_dir),
+              metrics_data_check(store)
+            ]
+          else
+            []
+          end
 
-    summarize(checks)
+      summarize(checks)
+    end
   end
 
   defp metrics_capability_check(store) do
@@ -80,27 +101,38 @@ defmodule TimelessPhoenix.Doctor do
 
   defp metrics_conversion_check(store, data_dir) do
     rust_dir = data_dir && Path.join(data_dir, "rust_engine")
-    had_legacy? = rust_dir && match?({:ok, [_ | _]}, File.ls(rust_dir))
+    legacy_registry = rust_dir && Path.join(rust_dir, "series.bin")
 
-    if had_legacy? do
-      db = :"#{store}_db"
+    legacy_artifacts? =
+      rust_dir &&
+        Enum.any?(["chunks", "batches", "compaction.manifest", "compaction.manifest.tmp"], fn
+          artifact -> File.exists?(Path.join(rust_dir, artifact))
+        end)
 
-      case TimelessMetrics.DB.read(
-             db,
-             "SELECT value FROM _metadata WHERE key = 'libsql_migration' LIMIT 1",
-             []
-           ) do
-        {:ok, [[marker]]} ->
-          {:ok,
-           "converted (marker: #{summarize_marker(marker)}); rust_engine/ retained for rollback"}
+    cond do
+      legacy_registry && File.regular?(legacy_registry) ->
+        db = :"#{store}_db"
 
-        _ ->
-          {:error,
-           "rust_engine/ present but NO conversion marker — the store may be " <>
-             "serving an empty database instead of converted data"}
-      end
-    else
-      {:ok, "no legacy rust_engine/ store (fresh or already cleaned)"}
+        case TimelessMetrics.DB.read(
+               db,
+               "SELECT value FROM _metadata WHERE key = 'libsql_migration' LIMIT 1",
+               []
+             ) do
+          {:ok, [[marker]]} ->
+            {:ok,
+             "converted (marker: #{summarize_marker(marker)}); rust_engine/ retained for rollback"}
+
+          _ ->
+            {:error,
+             "rust_engine/ present but NO conversion marker — the store may be " <>
+               "serving an empty database instead of converted data"}
+        end
+
+      legacy_artifacts? ->
+        {:error, "rust_engine/ exists without its legacy series.bin registry"}
+
+      true ->
+        {:ok, "no legacy rust_engine/ store (fresh or already cleaned)"}
     end
   end
 
@@ -131,8 +163,10 @@ defmodule TimelessPhoenix.Doctor do
       "logs.db",
       fn -> TimelessLogs.LibsqlEngine.sql("SELECT timeless_capabilities()") end,
       fn ->
-        {:ok, stats} = TimelessLogs.stats()
-        "#{stats.total_entries} entries, #{stats.total_blocks} blocks"
+        case TimelessLogs.stats() do
+          {:ok, stats} -> {:ok, "#{stats.total_entries} entries, #{stats.total_blocks} blocks"}
+          {:error, _reason} = error -> error
+        end
       end
     )
   end
@@ -146,15 +180,17 @@ defmodule TimelessPhoenix.Doctor do
       "traces.db",
       fn -> TimelessTraces.LibsqlEngine.sql("SELECT timeless_capabilities()") end,
       fn ->
-        {:ok, stats} = TimelessTraces.stats()
-        "#{stats.total_entries} spans, #{stats.total_blocks} blocks"
+        case TimelessTraces.stats() do
+          {:ok, stats} -> {:ok, "#{stats.total_entries} spans, #{stats.total_blocks} blocks"}
+          {:error, _reason} = error -> error
+        end
       end
     )
   end
 
   defp check_singleton(signal, app, pt_key, legacy_marker, converted_db, caps_fun, data_fun) do
     if Application.get_env(app, :owner, :embedded) == :external do
-      summarize([{:ok, "externally owned (Rust service) — verify via the service, not here"}])
+      summarize([{:warn, "externally owned (Rust service) — verify via the service, not here"}])
     else
       running = :persistent_term.get(pt_key, :missing)
       data_dir = Application.get_env(app, :data_dir)
@@ -214,8 +250,13 @@ defmodule TimelessPhoenix.Doctor do
     end
   end
 
-  defp singleton_data(data_fun) do
-    {:ok, data_fun.()}
+  @doc false
+  def singleton_data(data_fun) do
+    case data_fun.() do
+      {:ok, data} -> {:ok, data}
+      {:error, reason} -> {:warn, "stats unavailable: #{inspect(reason)}"}
+      other -> {:warn, "stats returned an unexpected result: #{inspect(other)}"}
+    end
   rescue
     error -> {:warn, "stats unavailable: #{Exception.message(error)}"}
   end

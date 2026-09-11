@@ -112,12 +112,19 @@ Forwarded via the `:reporter` key:
 
 ## Named instances
 
-Multiple TimelessPhoenix instances can run in the same application. Each gets isolated storage, processes, and dashboard pages:
+Metrics stores can be named, but the embedded TimelessLogs and TimelessTraces
+applications are node-wide singletons. Only one TimelessPhoenix instance may
+own embedded logs or traces. Additional named metrics instances must mark both
+singleton signals as externally owned:
 
 ```elixir
 children = [
   {TimelessPhoenix, data_dir: "priv/obs_main", name: :main},
-  {TimelessPhoenix, data_dir: "priv/obs_admin", name: :admin}
+  {TimelessPhoenix,
+    data_dir: "priv/obs_admin",
+    name: :admin,
+    timeless_logs: [owner: :external],
+    timeless_traces: [owner: :external]}
 ]
 ```
 
@@ -145,9 +152,12 @@ For development or CI, store logs and traces in memory (metrics always persist t
 ```elixir
 {TimelessPhoenix,
   data_dir: "priv/observability",
-  timeless_logs: [storage: :memory],
-  timeless_traces: [storage: :memory]}
+  timeless_logs: [engine: :elixir, storage: :memory],
+  timeless_traces: [engine: :elixir, storage: :memory]}
 ```
+
+Memory storage requires the deprecated Elixir engines; the libSQL engines are
+disk-backed.
 
 Or via the Igniter installer when you explicitly want ephemeral logs/traces:
 
