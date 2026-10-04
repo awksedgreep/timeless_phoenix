@@ -39,6 +39,17 @@ defmodule TimelessPhoenixTest do
     assert pages[:traces] == TimelessTracesDashboard.Page
   end
 
+  test "dashboard_pages has timeless_beam_acct's page where it is, and not where it is not" do
+    # Not among this project's dependencies, so not there unless asked for.
+    refute Keyword.has_key?(TimelessPhoenix.dashboard_pages(), :beam)
+
+    pages = TimelessPhoenix.dashboard_pages(beam_acct: true)
+    assert pages[:beam] == TimelessBeamAcct.Dashboard.Page
+    assert Keyword.keys(pages) == [:timeless, :logs, :traces, :beam]
+
+    refute Keyword.has_key?(TimelessPhoenix.dashboard_pages(beam_acct: false), :beam)
+  end
+
   test "DefaultMetrics.all returns a non-empty list of metrics" do
     metrics = TimelessPhoenix.DefaultMetrics.all()
     assert is_list(metrics)

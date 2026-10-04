@@ -15,6 +15,11 @@ tags (through v1.5.8; 1.5.9–1.5.18 shipped untagged).
 - Harden atom-only instance naming and embedded singleton ownership.
 - Parallelize and bound doctor checks, improve error reports, and add quiet mode.
 - Cache default metric definitions and remove duplicate flush series.
+- `dashboard_pages/1` includes `timeless_beam_acct`'s page, `beam`
+  ("TimelessAcct"), when that package is among the application's
+  dependencies; `beam_acct: false` leaves it out. An application with both
+  packages had the page nowhere on timeless_phoenix's dashboard, and the
+  installer removes any other `live_dashboard` it might have been on.
 
 ## 2.0.3 (2026-08-24)
 

@@ -196,6 +196,25 @@ live_dashboard "/dashboard",
   additional_pages: TimelessPhoenix.dashboard_pages()
 ```
 
+### Process accounting
+
+With [`timeless_beam_acct`](https://github.com/awksedgreep/timeless_beam_acct)
+among the dependencies, the dashboard has a fourth page, **TimelessAcct**:
+recordings of the processes of a node, started, stopped, and gone through
+from the page. `dashboard_pages/1` includes it whenever the package is
+there, whether the dashboard comes from the macro or is set up by hand,
+and whichever of the two installers ran first. `beam_acct: false` leaves
+it out:
+
+```elixir
+timeless_phoenix_dashboard "/dashboard",
+  live_dashboard: [additional_pages: TimelessPhoenix.dashboard_pages(beam_acct: false)]
+```
+
+The page reads the Timeless planes, which it is told of in
+`config :timeless_beam_acct, :dashboard`; `timeless_beam_acct`'s README
+has how, and how to keep the page to those who should have it.
+
 ## Running in Production
 
 The Igniter installer places `timeless_phoenix_dashboard` in a top-level

@@ -61,12 +61,16 @@ defmodule TimelessPhoenix do
   end
 
   @doc """
-  Returns additional_pages config for LiveDashboard with all three dashboard pages.
+  Returns additional_pages config for LiveDashboard with all three dashboard pages,
+  and a fourth, `beam` ("TimelessAcct"), when `timeless_beam_acct` is among the
+  application's dependencies: its recordings of the processes of a node.
 
   ## Options
 
     * `:name` — instance name (default: `:default`)
     * `:download_path` — path to DownloadPlug (default: `"/timeless/downloads"`)
+    * `:beam_acct` — whether to include the `timeless_beam_acct` page
+      (default: whether it is available)
   """
   def dashboard_pages(opts \\ []) do
     name = Keyword.get(opts, :name, :default)
@@ -78,8 +82,17 @@ defmodule TimelessPhoenix do
       timeless: {TimelessMetricsDashboard.Page, store: store, download_path: download_path},
       logs: TimelessLogsDashboard.Page,
       traces: TimelessTracesDashboard.Page
-    ]
+    ] ++ beam_acct_page(Keyword.get(opts, :beam_acct, beam_acct_available?()))
   end
+
+  @beam_acct_page TimelessBeamAcct.Dashboard.Page
+
+  defp beam_acct_page(true), do: [beam: @beam_acct_page]
+  defp beam_acct_page(false), do: []
+
+  # The page is compiled only where LiveDashboard is, and timeless_beam_acct
+  # is an optional companion: present in some applications, not in others.
+  defp beam_acct_available?, do: Code.ensure_loaded?(@beam_acct_page)
 
   @doc false
   def store_name(name) when is_atom(name), do: :"tp_#{name}_timeless"
