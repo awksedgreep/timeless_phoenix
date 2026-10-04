@@ -3,7 +3,14 @@
 This changelog starts at 2.0.0; earlier releases are recorded by git
 tags (through v1.5.8; 1.5.9–1.5.18 shipped untagged).
 
-## Unreleased
+## 2.0.4 (2026-10-04)
+
+**Requires `timeless_metrics >= 6.6.8`, which bundles timeless-libsql
+0.8.9** for all three signals. A store whose series come and go no longer
+grows its chunk count without bound or keeps a core busy compacting, and
+selective metrics reads are faster on a large catalog; no interface
+changed. **Requires `timeless_traces_dashboard >= 0.3.23`**: in 0.3.22 the
+Traces tab of the traces page answered 500 on every visit.
 
 - Replace unmonitored log/trace application starters with permanent monitor
   children and isolate signal failures under `:one_for_one` supervision.
